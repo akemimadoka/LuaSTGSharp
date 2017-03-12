@@ -1,0 +1,4 @@
+*.suo
+/Temp
+/Library
+*.user
