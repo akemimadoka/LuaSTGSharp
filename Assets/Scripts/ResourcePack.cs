@@ -35,7 +35,7 @@ namespace Assets.Scripts
 			_zipFile.Dispose();
 		}
 
-		public Stream GetResource(string path, object additionalData = null)
+		public Stream GetResourceStream(string path, object additionalData = null)
 		{
 			return GetFileData(path, additionalData as string);
 		}

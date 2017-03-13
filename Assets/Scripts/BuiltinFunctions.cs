@@ -9,6 +9,34 @@ namespace Assets.Scripts
 {
 	public static class BuiltinFunctions
 	{
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int Print(IntPtr l)
+		{
+			var n = LuaDLL.lua_gettop(l);
+			LuaDLL.lua_getglobal(l, "tostring"); // ... f
+			LuaDLL.lua_pushstring(l, ""); // ... f s
+			for (var i = 1; i <= n; ++i)
+			{
+				if (i > 1)
+				{
+					LuaDLL.lua_pushstring(l, "\t"); // ... f s s
+					LuaDLL.lua_concat(l, 2); // ... f s
+				}
+				LuaDLL.lua_pushvalue(l, -2); // ... f s f
+				LuaDLL.lua_pushvalue(l, i); // ... f s f arg[i]
+				LuaDLL.lua_call(l, 1, 1); // ... f s ret
+				LuaDLL.luaL_checktype(l, -1, LuaTypes.LUA_TSTRING);
+				LuaDLL.lua_concat(l, 2); // ... f s
+			}
+			
+			LuaDLL.luaL_checktype(l, -1, LuaTypes.LUA_TSTRING);
+			Game.GameInstance.GameLogger.Log(LuaDLL.lua_tostring(l, -1));
+			LuaDLL.lua_pop(l, 2);
+			
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		public static int Dist(IntPtr l)
 		{
 			if (LuaDLL.lua_gettop(l) == 2)
@@ -43,6 +71,7 @@ namespace Assets.Scripts
 
 		public static void Register(IntPtr l)
 		{
+			LuaObject.reg(l, Print);
 			LuaObject.reg(l, Dist);
 		}
 	}

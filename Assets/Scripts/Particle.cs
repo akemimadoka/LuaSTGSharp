@@ -60,10 +60,6 @@ namespace Assets.Scripts
 			: base(name)
 		{
 		}
-		
-		public override void Dispose()
-		{
-		}
 
 		public override bool InitFromStream(Stream stream)
 		{

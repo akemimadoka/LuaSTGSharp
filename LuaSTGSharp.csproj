@@ -93,6 +93,16 @@
     <Compile Include="Assets\Scripts\Particle.cs" />
     <Compile Include="Assets\Scripts\Resource.cs" />
     <Compile Include="Assets\Scripts\ResourcePack.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\BindCustom.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\LuaSystem_Action_1_int.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\LuaSystem_Action_2_int_Dictionary_System_Int32_object_.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\LuaSystem_Action_2_int_string.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\LuaSystem_Comparison_1_int.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\LuaSystem_Func_1_int.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\LuaSystem_Predicate_1_int.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\Lua_System_Collections_Generic_Dictionary_2_int_string.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\Lua_System_Collections_Generic_List_1_int.cs" />
+    <Compile Include="Assets\Slua\LuaObject\Custom\Lua_System_String.cs" />
     <Compile Include="Assets\Slua\LuaObject\Unity\BindUnity.cs" />
     <Compile Include="Assets\Slua\LuaObject\Unity\BindUnityUI.cs" />
     <Compile Include="Assets\Slua\LuaObject\Unity\LuaDelegate_UnityEngine_Application_AdvertisingIdentifierCallback.cs" />
@@ -778,26 +788,6 @@
     <Compile Include="Assets\Slua\LuaObject\Unity\Lua_UnityEngine_WindZone.cs" />
     <Compile Include="Assets\Slua\LuaObject\Unity\Lua_UnityEngine_WindZoneMode.cs" />
     <Compile Include="Assets\Slua\LuaObject\Unity\Lua_UnityEngine_WrapMode.cs" />
-    <Compile Include="Assets\Slua\example\Circle.cs" />
-    <Compile Include="Assets\Slua\example\Custom.cs" />
-    <Compile Include="Assets\Slua\example\Deleg.cs" />
-    <Compile Include="Assets\Slua\example\HelloWorld.cs" />
-    <Compile Include="Assets\Slua\example\Main.cs" />
-    <Compile Include="Assets\Slua\example\Perf.cs" />
-    <Compile Include="Assets\Slua\example\ValueType.cs" />
-    <Compile Include="Assets\Slua\example\VarObj.cs" />
-    <Compile Include="Assets\Slua\example\test\TestLua.cs" />
-    <Compile Include="Assets\Slua\example\test\test.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Assets\Slua\Resources\circle\circle.txt" />
-    <None Include="Assets\Slua\Resources\custom.txt" />
-    <None Include="Assets\Slua\Resources\delegate.txt" />
-    <None Include="Assets\Slua\Resources\main.txt" />
-    <None Include="Assets\Slua\Resources\module\some.txt" />
-    <None Include="Assets\Slua\Resources\perf.txt" />
-    <None Include="Assets\Slua\Resources\valuetype.txt" />
-    <None Include="Assets\Slua\Resources\varobj.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />

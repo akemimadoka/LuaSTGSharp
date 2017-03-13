@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using Assets.Scripts;
 
 public class LSTGObject : MonoBehaviour
 {
@@ -13,7 +14,10 @@ public class LSTGObject : MonoBehaviour
 
 	public Status ObjectStatus { get; private set; }
 
-	public int Id { get; private set; }
+	public int Id
+	{
+		get { return GetInstanceID(); }
+	}
 	
 	public Vector2 CurrentPosition
 	{
@@ -108,11 +112,13 @@ public class LSTGObject : MonoBehaviour
 	public int Group { get; set; }
 	public int Timer { get; private set; }
 	public int AniTimer { get; private set; }
-	
+
+	public Resource RenderResource { get; set; }
+	public ResParticle Particle { get; set; }
+
 	// Use this for initialization
 	private void Start()
 	{
-		Id = GetInstanceID();
 		ObjectStatus = Status.Free;
 		gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
 		LastPosition = transform.position;

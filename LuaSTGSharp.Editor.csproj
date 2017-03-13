@@ -140,16 +140,6 @@
     <Compile Include="Assets\Slua\Editor\CustomExport.cs" />
     <Compile Include="Assets\Slua\Editor\LuaCodeGen.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="Assets\Slua\Resources\circle\circle.txt" />
-    <None Include="Assets\Slua\Resources\custom.txt" />
-    <None Include="Assets\Slua\Resources\delegate.txt" />
-    <None Include="Assets\Slua\Resources\main.txt" />
-    <None Include="Assets\Slua\Resources\module\some.txt" />
-    <None Include="Assets\Slua\Resources\perf.txt" />
-    <None Include="Assets\Slua\Resources\valuetype.txt" />
-    <None Include="Assets\Slua\Resources\varobj.txt" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />
 </Project>

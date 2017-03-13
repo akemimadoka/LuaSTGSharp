@@ -557,7 +557,7 @@ namespace SLua
 
 			LuaDLL.luaL_openlibs(L);
 
-			string PCallCSFunction = @"
+			/*string PCallCSFunction = @"
 local assert = assert
 local function check(ok,...)
 	assert(ok, ...)
@@ -566,6 +566,14 @@ end
 return function(cs_func)
 	return function(...)
 		return check(cs_func(...))
+	end
+end
+";*/
+
+			string PCallCSFunction = @"
+return function(cs_func)
+	return function(...)
+		return cs_func(...)
 	end
 end
 ";
