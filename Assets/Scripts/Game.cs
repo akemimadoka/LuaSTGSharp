@@ -19,13 +19,22 @@ public class Game : MonoBehaviour
 		Destroyed
 	}
 
+	public Status CurrentStatus { get; private set; }
+
 	public string DataPath { get; private set; }
 	public string LogFilePath { get; private set; }
-	public Status CurrentStatus { get; private set; }
 	public LuaSvr LuaVM { get; private set; }
 	public ResourceManager ResourceManager { get; private set; }
 	public readonly Dictionary<int, LSTGObject> ObjectDictionary = new Dictionary<int, LSTGObject>();
 	public Collider2D Bound { get; private set; }
+
+	public float CurrentFPS { get; private set; }
+
+	public LuaTable GlobalTable { get; private set; }
+
+	private LuaFunction _focusLoseFunc;
+	private LuaFunction _focusGainFunc;
+	private LuaFunction _frameFunc;
 
 	public static Game GameInstance { get; private set; }
 
@@ -96,31 +105,122 @@ public class Game : MonoBehaviour
 		ResourceManager = new ResourceManager();
 		ResourceManager.AddResourceDataProvider(new LocalFileProvider(DataPath));
 		ResourceManager.AddResourceDataProvider(new ResourcePack(ResourceManager.GetResourceStream("data.zip")));
-		LuaVM = new LuaSvr();
-		LuaVM.init(null, () =>
-		{
-			var L = LuaVM.luaState.L;
-			LuaDLL.lua_gc(L, LuaGCOptions.LUA_GCSTOP, 0);
-
-			LuaDLL.luaL_openlibs(L);
-
-			BuiltinFunctions.Register(L);
-
-			LuaDLL.lua_gc(L, LuaGCOptions.LUA_GCRESTART, -1);
-		});
 
 		Bound = gameObject.AddComponent<BoxCollider2D>();
 		Bound.isTrigger = true;
 
-		Debug.Log(ResourceManager.FindResourceAs<ResLuaScript>("test.lua").Execute());
+		LuaVM = new LuaSvr();
+		LuaVM.init(null, () =>
+		{
+			var l = LuaVM.luaState.L;
+			LuaDLL.lua_gc(l, LuaGCOptions.LUA_GCSTOP, 0);
 
-		CurrentStatus = Status.Initialized;
+			LuaDLL.luaL_openlibs(l);
+
+			BuiltinFunctions.Register(l);
+
+			LuaDLL.lua_gc(l, LuaGCOptions.LUA_GCRESTART, -1);
+
+			ResourceManager.FindResourceAs<ResLuaScript>("launch").Execute();
+
+			LuaDLL.lua_pushglobaltable(l);
+			LuaTable globalTable;
+			LuaObject.checkType(l, -1, out globalTable);
+			if (globalTable == null)
+			{
+				throw new Exception("Cannot get global table");
+			}
+			GlobalTable = globalTable;
+			LuaDLL.lua_pop(l, 1);
+
+			globalTable["lstg"] = new LuaTable(LuaVM.luaState);
+
+			ResourceManager.FindResourceAs<ResLuaScript>("core.lua").Execute();
+			
+			var gameInit = globalTable["GameInit"] as LuaFunction;
+			if (gameInit == null)
+			{
+				throw new Exception("GameInit does not exist or is not a function");
+			}
+			
+			_focusLoseFunc = globalTable["FocusLoseFunc"] as LuaFunction;
+			if (_focusLoseFunc == null)
+			{
+				throw new Exception("FocusLoseFunc does not exist or is not a function");
+			}
+			
+			_focusGainFunc = globalTable["FocusGainFunc"] as LuaFunction;
+			if (_focusGainFunc == null)
+			{
+				throw new Exception("FocusGainFunc does not exist or is not a function");
+			}
+			
+			_frameFunc = globalTable["FrameFunc"] as LuaFunction;
+			if (_frameFunc == null)
+			{
+				throw new Exception("FrameFunc does not exist or is not a function");
+			}
+
+			gameInit.call();
+
+			CurrentStatus = Status.Initialized;
+		});
 	}
 	
 	// Update is called once per frame
 	void Update()
 	{
+		switch (CurrentStatus)
+		{
+			case Status.NotInitialized:
+			case Status.Initializing:
+				throw new Exception("Illegal status.");
+			case Status.Initialized:
+				CurrentStatus = Status.Running;
+				break;
+			case Status.Running:
+				break;
+			case Status.Aborted:
+				// TODO: 完成回收操作
+				CurrentStatus = Status.Destroyed;
+				break;
+			case Status.Destroyed:
+				Application.Quit();
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
+		}
+
+		CurrentFPS = 1.0f / Time.deltaTime;
+
+		// TODO: 完成更新操作，包括对象的更新等
 		
+		if ((bool) _frameFunc.call())
+		{
+			CurrentStatus = Status.Aborted;
+		}
+	}
+	
+	private void OnApplicationFocus(bool focus)
+	{
+		// 可能在初始化完成之前被调用，因此我们必须检查状态
+		switch (CurrentStatus)
+		{
+			case Status.NotInitialized:
+			case Status.Initializing:
+				return;
+			default:
+				break;
+		}
+
+		if (focus)
+		{
+			_focusGainFunc.call();
+		}
+		else
+		{
+			_focusLoseFunc.call();
+		}
 	}
 
 	private void OnTriggerExit2D(Collider2D collision)

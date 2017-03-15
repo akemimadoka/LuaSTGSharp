@@ -56,6 +56,7 @@ namespace Assets.Scripts
 
 			var stream = new MemoryStream((int) entry.UncompressedSize);
 			entry.Extract(stream);
+			stream.Seek(0, SeekOrigin.Begin);
 			return stream;
 		}
 	}

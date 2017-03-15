@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using SLua;
 using UnityEngine;
@@ -61,7 +62,51 @@ namespace Assets.Scripts
 				var p2 = new Vector2((float) LuaDLL.luaL_checknumber(l, 3), (float) LuaDLL.luaL_checknumber(l, 4));
 				LuaDLL.lua_pushnumber(l, Vector2.Distance(p1, p2));
 			}
+
 			return 1;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int SetWindowed(IntPtr l)
+		{
+			bool value;
+			if (LuaObject.checkType(l, -1, out value))
+			{
+				return LuaObject.error(l, "invalid argument for 'SetWindowed'");
+			}
+			Screen.fullScreen = value;
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int GetFPS(IntPtr l)
+		{
+			LuaDLL.lua_pushnumber(l, Game.GameInstance.CurrentFPS);
+			return 1;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int SetFPS(IntPtr l)
+		{
+			int fps;
+			if (!LuaObject.checkType(l, -1, out fps) || fps <= 0)
+			{
+				fps = 60;
+			}
+			Application.targetFrameRate = fps;
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int SetVsync(IntPtr l)
+		{
+			bool value;
+			if (LuaObject.checkType(l, -1, out value))
+			{
+				QualitySettings.vSyncCount = value ? 1 : 0;
+			}
+
+			return 0;
 		}
 
 		public static int New(IntPtr l)
@@ -71,8 +116,13 @@ namespace Assets.Scripts
 
 		public static void Register(IntPtr l)
 		{
-			LuaObject.reg(l, Print);
-			LuaObject.reg(l, Dist);
+			foreach (var method in from method in typeof(BuiltinFunctions).GetMethods()
+								   where method.IsDefined(typeof(MonoPInvokeCallbackAttribute), false)
+								   select method)
+			{
+				LuaObject.reg(l, (LuaCSFunction) Delegate.CreateDelegate(typeof(LuaCSFunction), method));
+			}
+			
 		}
 	}
 }

@@ -36,6 +36,7 @@ namespace SLua
 	using Debug = UnityEngine.Debug;
 	#endif
 
+	[Flags]
 	public enum LuaSvrFlag {
 		LSF_BASIC = 0,
 		LSF_EXTLIB = 1,

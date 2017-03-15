@@ -327,9 +327,10 @@ return Class
 				{
 					object o = checkObj(l, 1);
 #if !SLUA_STANDALONE
-					if( o is UnityEngine.Object )
+					var o1 = o as UnityEngine.Object;
+					if( o1 != null )
 					{
-						pushValue(l, ((UnityEngine.Object)o)==null);
+						pushValue(l, false);
 					}
 					else
 #endif

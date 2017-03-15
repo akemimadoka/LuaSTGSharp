@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using Assets.Scripts;
+using SLua;
 
 public class LSTGObject : MonoBehaviour
 {
@@ -116,6 +117,8 @@ public class LSTGObject : MonoBehaviour
 	public Resource RenderResource { get; set; }
 	public ResParticle Particle { get; set; }
 
+	private LuaTable _luaTable;
+
 	// Use this for initialization
 	private void Start()
 	{
@@ -134,11 +137,30 @@ public class LSTGObject : MonoBehaviour
 		AniTimer = 0;
 	}
 
+	private void OnAcquireLuaTable(LuaTable luaTable)
+	{
+		_luaTable = luaTable;
+	}
+
 	// Update is called once per frame
 	private void Update()
 	{
+		LastPosition = transform.position;
+
+		var frameFunc = _luaTable[3] as LuaFunction;
+		if (frameFunc != null)
+		{
+			frameFunc.call(_luaTable);
+		}
+
+		// AfterFrame？
 		++Timer;
 		++AniTimer;
+
+		if (ObjectStatus != Status.Default)
+		{
+			Destroy(gameObject);
+		}
 	}
 
 	private void OnTriggerEnter2D(Collider2D collision)
