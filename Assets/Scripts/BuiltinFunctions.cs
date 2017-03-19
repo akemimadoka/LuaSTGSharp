@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using SLua;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Assets.Scripts
 {
@@ -109,9 +112,183 @@ namespace Assets.Scripts
 			return 0;
 		}
 
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int Snapshot(IntPtr l)
+		{
+			string path;
+			LuaObject.checkType(l, -1, out path);
+			if (path == null)
+			{
+				return LuaDLL.luaL_error(l, "Path is not a valid argument for 'Snapshot'");
+			}
+
+			Application.CaptureScreenshot(path);
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int GetAttr(IntPtr l)
+		{
+			LuaDLL.lua_rawgeti(l, 1, 2);
+			var id = LuaDLL.lua_tointeger(l, -1);
+			LuaDLL.lua_pop(l, 1);
+
+			var obj = Game.GameInstance.GetObject(id);
+
+			string key;
+			LuaObject.checkType(l, -1, out key);
+			if (key == null)
+			{
+				return LuaDLL.luaL_error(l, "invalid key for 'GetAttr'");
+			}
+
+			var attrRegex = new Regex(@"\b(.*)([xy]?)\b", RegexOptions.Compiled);
+			var match = attrRegex.Match(key);
+			if (match.Success)
+			{
+				var propName = match.Groups[1].Value;
+
+				var prop = LSTGObject.FindProperty(propName);
+				if (prop != null)
+				{
+					var value = prop.GetValue(obj, null);
+					switch (match.Groups[2].Value)
+					{
+						case "x":
+							LuaObject.pushValue(l, ((Vector2) value).x);
+							break;
+						case "y":
+							LuaObject.pushValue(l, ((Vector2) value).y);
+							break;
+						default:
+							LuaObject.pushValue(l, value);
+							break;
+					}
+				}
+				else
+				{
+					return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
+				}
+			}
+			else
+			{
+				switch (key)
+				{
+					case "a":
+						LuaObject.pushValue(l, obj.Ab.x);
+						break;
+					case "b":
+						LuaObject.pushValue(l, obj.Ab.y);
+						break;
+					case "hscale":
+						LuaObject.pushValue(l, obj.Scale.x);
+						break;
+					case "vscale":
+						LuaObject.pushValue(l, obj.Scale.y);
+						break;
+					default:
+						return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
+				}
+			}
+
+			return 1;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int SetAttr(IntPtr l)
+		{
+			LuaDLL.lua_rawgeti(l, 1, 2);
+			var id = LuaDLL.lua_tointeger(l, -1);
+			LuaDLL.lua_pop(l, 1);
+
+			var obj = Game.GameInstance.GetObject(id);
+
+			string key;
+			LuaObject.checkType(l, -1, out key);
+			if (key == null)
+			{
+				return LuaDLL.luaL_error(l, "invalid key for 'GetAttr'");
+			}
+
+			var attrRegex = new Regex(@"\b(.*)([xy]?)\b", RegexOptions.Compiled);
+			var match = attrRegex.Match(key);
+			if (match.Success)
+			{
+				var propName = match.Groups[1].Value;
+
+				var prop = LSTGObject.FindProperty(propName);
+				if (prop != null)
+				{
+					var value = prop.GetValue(obj, null);
+					switch (match.Groups[2].Value)
+					{
+						case "x":
+						{
+							var vec = (Vector2) value;
+							vec.x = (float)LuaDLL.luaL_checknumber(l, -1);
+							prop.SetValue(obj, vec, null);
+						}
+							break;
+						case "y":
+						{
+							var vec = (Vector2) value;
+							vec.y = (float)LuaDLL.luaL_checknumber(l, -1);
+							prop.SetValue(obj, vec, null);
+						}
+							break;
+						default:
+							prop.SetValue(obj, LuaObject.checkVar(l, -1), null);
+							break;
+					}
+				}
+				else
+				{
+					return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
+				}
+			}
+			else
+			{
+				switch (key)
+				{
+					case "a":
+					{
+						var ab = obj.Ab;
+						ab.x = (float)LuaDLL.luaL_checknumber(l, -1);
+						obj.Ab = ab;
+					}
+						break;
+					case "b":
+					{
+						var ab = obj.Ab;
+						ab.y = (float)LuaDLL.luaL_checknumber(l, -1);
+						obj.Ab = ab;
+					}
+						break;
+					case "hscale":
+					{
+						var scale = obj.Scale;
+						scale.x = (float)LuaDLL.luaL_checknumber(l, -1);
+						obj.Scale = scale;
+					}
+						break;
+					case "vscale":
+					{
+						var scale = obj.Scale;
+						scale.y = (float)LuaDLL.luaL_checknumber(l, -1);
+						obj.Scale = scale;
+					}
+						break;
+					default:
+						return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
+				}
+			}
+
+			return 0;
+		}
+
 		public static int New(IntPtr l)
 		{
-			throw new NotImplementedException();
+			return 0;
 		}
 
 		public static void Register(IntPtr l)
@@ -120,9 +297,63 @@ namespace Assets.Scripts
 								   where method.IsDefined(typeof(MonoPInvokeCallbackAttribute), false)
 								   select method)
 			{
-				LuaObject.reg(l, (LuaCSFunction) Delegate.CreateDelegate(typeof(LuaCSFunction), method));
+				LuaObject.reg(l, (LuaCSFunction) Delegate.CreateDelegate(typeof(LuaCSFunction), method), "lstg");
 			}
-			
+		}
+
+		public static void InitMetaTable(IntPtr l)
+		{
+			LuaDLL.lua_pushlightuserdata(l, l);
+			LuaDLL.lua_createtable(l, Game.MaxObjectCount, 0);
+
+			LuaDLL.lua_newtable(l);
+			LuaDLL.lua_getglobal(l, "lstg");
+			LuaDLL.lua_pushstring(l, "GetAttr");
+			LuaDLL.lua_gettable(l, -2);
+			LuaDLL.lua_pushstring(l, "SetAttr");
+			LuaDLL.lua_gettable(l, -3);
+			Debug.Assert(LuaDLL.lua_iscfunction(l, -1), LuaDLL.lua_iscfunction(l, -2));
+			LuaDLL.lua_setfield(l, -4, "__newindex");
+			LuaDLL.lua_setfield(l, -3, "__index");
+			LuaDLL.lua_pop(l, 1);
+
+			LuaDLL.lua_setfield(l, -2, "mt");
+			LuaDLL.lua_settable(l, LuaIndexes.LUA_REGISTRYINDEX);
+		}
+	}
+
+	[CustomLuaClass]
+	public sealed class Rand
+	{
+		private Random.State _state;
+
+		public void Seed(int seed)
+		{
+			Random.InitState(seed);
+			_state = Random.state;
+		}
+
+		public int Int(int a, int b)
+		{
+			Random.state = _state;
+			return Random.Range(a, b);
+		}
+
+		public float Float(float a, float b)
+		{
+			Random.state = _state;
+			return Random.Range(a, b);
+		}
+
+		public int Sign()
+		{
+			Random.state = _state;
+			return Random.Range(0, 1) * 2 - 1;
+		}
+
+		public override string ToString()
+		{
+			return "lstg.Rand object";
 		}
 	}
 }

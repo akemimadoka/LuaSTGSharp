@@ -1,10 +1,39 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using Assets.Scripts;
 using SLua;
 
 public class LSTGObject : MonoBehaviour
 {
+	private static readonly Dictionary<string, PropertyInfo> PropertiesMap = new Dictionary<string, PropertyInfo>();
+
+	public static PropertyInfo FindProperty(string key)
+	{
+		PropertyInfo info;
+		PropertiesMap.TryGetValue(key, out info);
+		return info;
+	}
+
+	static LSTGObject()
+	{
+		foreach (var prop in typeof(LSTGObject).GetProperties())
+		{
+			foreach (var attr in prop.GetCustomAttributes(false))
+			{
+				var aliasAttr = attr as LObjectPropertyAliasAsAttribute;
+				if (aliasAttr != null)
+				{
+					PropertiesMap.Add(aliasAttr.Alias, prop);
+					break;
+				}
+			}
+		}
+	}
+
 	public enum Status
 	{
 		Free,
@@ -13,22 +42,27 @@ public class LSTGObject : MonoBehaviour
 		Del
 	}
 
+	[LObjectPropertyAliasAs("status")]
 	public Status ObjectStatus { get; private set; }
 
 	public int Id
 	{
 		get { return GetInstanceID(); }
 	}
-	
+
+	[LObjectPropertyAliasAs("")]
 	public Vector2 CurrentPosition
 	{
 		get { return transform.position; }
 		set { transform.position = value; }
 	}
 
+	[LObjectPropertyAliasAs("last")]
 	public Vector2 LastPosition { get; set; }
+	[LObjectPropertyAliasAs("d")]
 	public Vector2 Delta { get; private set; }
 
+	[LObjectPropertyAliasAs("rot")]
 	public float Rotation
 	{
 		get
@@ -42,9 +76,13 @@ public class LSTGObject : MonoBehaviour
 		set { transform.rotation = Quaternion.AngleAxis(value, Vector3.forward); }
 	}
 
+	[LObjectPropertyAliasAs("omiga")]
 	public float Omiga { get; set; }
+	[LObjectPropertyAliasAs("v")]
 	public Vector2 Velocity { get; set; }
+	[LObjectPropertyAliasAs("a")]
 	public Vector2 Acceleration { get; set; }
+	[LObjectPropertyAliasAs("layer")]
 	public float Layer { get; set; }
 
 	private Vector2 _ab;
@@ -68,17 +106,25 @@ public class LSTGObject : MonoBehaviour
 		}
 	}
 
+	public Vector2 Scale
+	{
+		get { return transform.localScale; }
+		set { transform.localScale = value; }
+	}
+
 	public Collider2D Collider
 	{
 		get { return GetComponent<Collider2D>(); }
 	}
 
+	[LObjectPropertyAliasAs("colli")]
 	public bool Colli
 	{
 		get { return Collider.enabled; }
 		set { Collider.enabled = value; }
 	}
 
+	[LObjectPropertyAliasAs("rect")]
 	public bool Rect
 	{
 		get { return Collider is BoxCollider2D; }
@@ -100,18 +146,24 @@ public class LSTGObject : MonoBehaviour
 		}
 	}
 
+	[LObjectPropertyAliasAs("bound")]
 	public bool Bound { get; set; }
 
+	[LObjectPropertyAliasAs("hide")]
 	public bool Hide
 	{
 		get { return GetComponent<SpriteRenderer>().enabled; }
 		set { GetComponent<SpriteRenderer>().enabled = value; }
 	}
 
+	[LObjectPropertyAliasAs("navi")]
 	public bool Navi { get; set; }
 
+	[LObjectPropertyAliasAs("group")]
 	public int Group { get; set; }
+	[LObjectPropertyAliasAs("timer")]
 	public int Timer { get; private set; }
+	[LObjectPropertyAliasAs("ani_timer")]
 	public int AniTimer { get; private set; }
 
 	public Resource RenderResource { get; set; }

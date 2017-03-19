@@ -33,7 +33,7 @@ namespace SLua
 #if !SLUA_STANDALONE
     using UnityEngine;
 #endif
-	abstract public class LuaVar : IDisposable
+	public abstract class LuaVar : IDisposable
 	{
 		protected LuaState state = null;
 		protected int valueref = 0;
@@ -489,9 +489,9 @@ namespace SLua
 		public delegate byte[] LoaderDelegate(string fn);
 		public delegate void OutputDelegate(string msg);
 
-		static public LoaderDelegate loaderDelegate;
-		static public OutputDelegate logDelegate;
-		static public OutputDelegate errorDelegate;
+		public static LoaderDelegate loaderDelegate;
+		public static OutputDelegate logDelegate;
+		public static OutputDelegate errorDelegate;
 
 
 		public delegate void UnRefAction(IntPtr l, int r);
@@ -508,14 +508,14 @@ namespace SLua
 		static Dictionary<IntPtr, LuaState> statemap = new Dictionary<IntPtr, LuaState>();
 		static IntPtr oldptr = IntPtr.Zero;
 		static LuaState oldstate = null;
-		static public LuaCSFunction errorFunc = new LuaCSFunction(errorReport);
+		public static LuaCSFunction errorFunc = new LuaCSFunction(errorReport);
 
 		public bool isMainThread()
 		{
 			return System.Threading.Thread.CurrentThread.ManagedThreadId == mainThread;
 		}
 
-		static public LuaState get(IntPtr l)
+		public static LuaState get(IntPtr l)
 		{
 			if (l == oldptr)
 				return oldstate;
@@ -847,13 +847,13 @@ end
 		}
 
 		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
-		static public int panicCallback(IntPtr l)
+		public static int panicCallback(IntPtr l)
 		{
 			string reason = string.Format("unprotected error in call to Lua API ({0})", LuaDLL.lua_tostring(l, -1));
 			throw new Exception(reason);
 		}
 
-		static public void pushcsfunction(IntPtr L, LuaCSFunction function)
+		public static void pushcsfunction(IntPtr L, LuaCSFunction function)
 		{
 			LuaDLL.lua_getref(L, get(L).PCallCSFunctionRef);
 			LuaDLL.lua_pushcclosure(L, function, 0);
@@ -867,7 +867,7 @@ end
 			object obj;
 			if (doBuffer(bytes, "temp buffer", out obj))
 				return obj;
-			return null; ;
+			return null;
 		}
 
 		public object doString(string str, string chunkname)
@@ -877,7 +877,7 @@ end
 			object obj;
 			if (doBuffer(bytes, chunkname, out obj))
 				return obj;
-			return null; ;
+			return null;
 		}
 
 		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]

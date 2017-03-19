@@ -9,6 +9,8 @@ using Object = UnityEngine.Object;
 
 public class Game : MonoBehaviour
 {
+	public const int MaxObjectCount = 32767;
+
 	public enum Status
 	{
 		NotInitialized,
@@ -39,7 +41,7 @@ public class Game : MonoBehaviour
 	public static Game GameInstance { get; private set; }
 
 	private class GameLogHandler
-		: ILogHandler
+		: ILogHandler, IDisposable
 	{
 		private readonly TextWriter _writer;
 
@@ -58,6 +60,11 @@ public class Game : MonoBehaviour
 		public void LogException(Exception exception, Object context)
 		{
 			LogFormat(LogType.Exception, context, "Exception logged: {0}", exception);
+		}
+
+		public void Dispose()
+		{
+			_writer.Dispose();
 		}
 	}
 
@@ -118,6 +125,7 @@ public class Game : MonoBehaviour
 			LuaDLL.luaL_openlibs(l);
 
 			BuiltinFunctions.Register(l);
+			BuiltinFunctions.InitMetaTable(l);
 
 			LuaDLL.lua_gc(l, LuaGCOptions.LUA_GCRESTART, -1);
 
@@ -132,8 +140,6 @@ public class Game : MonoBehaviour
 			}
 			GlobalTable = globalTable;
 			LuaDLL.lua_pop(l, 1);
-
-			globalTable["lstg"] = new LuaTable(LuaVM.luaState);
 
 			ResourceManager.FindResourceAs<ResLuaScript>("core.lua").Execute();
 			
@@ -230,4 +236,8 @@ public class Game : MonoBehaviour
 			
 		}
 	}
+	// TODO: 完成默认类元表
+	// lua端对象通过元表调用GetAttr/SetAttr取得/设置属性，无需重复赋值给lua端
+	// 对象是否还需要排序？是否需要重用？
+	// 还有多少未实现的API？
 }

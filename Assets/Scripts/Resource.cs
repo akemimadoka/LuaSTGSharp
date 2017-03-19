@@ -407,11 +407,13 @@ namespace Assets.Scripts
 					resource = constructor.Invoke(new object[] { name }) as Resource;
 					if (resource != null)
 					{
-						var stream = _resourceManager.GetResourceStream(name);
-						if (stream == null || !resource.InitFromStream(stream))
+						using (var stream = _resourceManager.GetResourceStream(name))
 						{
-							resource.Dispose();
-							return null;
+							if (stream == null || !resource.InitFromStream(stream))
+							{
+								resource.Dispose();
+								return null;
+							}
 						}
 
 						resources.Add(name, resource);
