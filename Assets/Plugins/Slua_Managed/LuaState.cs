@@ -508,7 +508,7 @@ namespace SLua
 		static Dictionary<IntPtr, LuaState> statemap = new Dictionary<IntPtr, LuaState>();
 		static IntPtr oldptr = IntPtr.Zero;
 		static LuaState oldstate = null;
-		public static LuaCSFunction errorFunc = new LuaCSFunction(errorReport);
+		public static LuaCSFunction errorFunc = errorReport;
 
 		public bool isMainThread()
 		{
@@ -832,18 +832,16 @@ end
 			{
 				return 2;
 			}
-			else
+
+			if (LuaDLL.lua_isnil(L, -1))
 			{
-				if (LuaDLL.lua_isnil(L, -1))
-				{
-					string fileName = LuaDLL.lua_tostring(L, 1);
-					return LuaObject.error(L, "Can't find {0}", fileName);
-				}
-				int k = LuaDLL.lua_gettop(L);
-				LuaDLL.lua_call(L, 0, LuaDLL.LUA_MULTRET);
-				k = LuaDLL.lua_gettop(L);
-				return k - n;
+				string fileName = LuaDLL.lua_tostring(L, 1);
+				return LuaObject.error(L, "Can't find {0}", fileName);
 			}
+			int k = LuaDLL.lua_gettop(L);
+			LuaDLL.lua_call(L, 0, LuaDLL.LUA_MULTRET);
+			k = LuaDLL.lua_gettop(L);
+			return k - n;
 		}
 
 		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]

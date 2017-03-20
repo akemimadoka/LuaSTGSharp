@@ -127,6 +127,83 @@ namespace Assets.Scripts
 		}
 
 		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int DoFile(IntPtr l)
+		{
+			string path;
+			LuaObject.checkType(l, -1, out path);
+			if (string.IsNullOrEmpty(path))
+			{
+				return LuaDLL.luaL_error(l, "invalid argument for 'DoFile'");
+			}
+
+			Game.GameInstance.ResourceManager.FindResourceAs<ResLuaScript>(path).Execute(LuaState.get(l));
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int LoadTexture(IntPtr l)
+		{
+			string name, path;
+			LuaObject.checkType(l, 1, out name);
+			LuaObject.checkType(l, 2, out path);
+
+			var activedPool = Game.GameInstance.ResourceManager.GetActivedPool();
+			if (activedPool == null)
+			{
+				return LuaDLL.luaL_error(l, "cannot load resource at this time.");
+			}
+
+			if (activedPool.GetResourceAs<ResTexture>(name, path) == null)
+			{
+				return LuaDLL.luaL_error(l, "cannot load texture from path '{1}' as name '{0}'", name, path);
+			}
+
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int LoadImage(IntPtr l)
+		{
+			string name, textureName;
+			LuaObject.checkType(l, 1, out name);
+			LuaObject.checkType(l, 2, out textureName);
+
+			var activedPool = Game.GameInstance.ResourceManager.GetActivedPool();
+			if (activedPool == null)
+			{
+				return LuaDLL.luaL_error(l, "cannot load resource at this time.");
+			}
+
+			if (activedPool.ResourceExists(name, typeof(ResSprite)))
+			{
+				return LuaDLL.luaL_error(l, "sprite '{0}' has already loaded", name);
+			}
+
+			if (!activedPool.ResourceExists(textureName, typeof(ResTexture)))
+			{
+				return LuaDLL.luaL_error(l, "texture '{0}' has not loaded", textureName);
+			}
+			var sprite = Sprite.Create(activedPool.GetResourceAs<ResTexture>(textureName).GetTexture(), new Rect(
+				(float) LuaDLL.luaL_checknumber(l, 3),
+				(float) LuaDLL.luaL_checknumber(l, 4),
+				(float) LuaDLL.luaL_checknumber(l, 5),
+				(float) LuaDLL.luaL_checknumber(l, 6)), new Vector2(0.5f, 0.5f));
+
+			float a, b;
+			bool rect;
+			LuaObject.checkType(l, 7, out a);
+			LuaObject.checkType(l, 8, out b);
+			LuaObject.checkType(l, 9, out rect);
+
+			if (!activedPool.AddResource(new ResSprite(name, sprite, a, b, rect)))
+			{
+				return LuaDLL.luaL_error(l, "some error occured while adding sprite '{0}' to resource pool", name);
+			}
+
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		public static int GetAttr(IntPtr l)
 		{
 			LuaDLL.lua_rawgeti(l, 1, 2);
@@ -227,14 +304,14 @@ namespace Assets.Scripts
 					case "x":
 					{
 						var vec = (Vector2) value;
-						vec.x = (float)LuaDLL.luaL_checknumber(l, -1);
+						vec.x = (float) LuaDLL.luaL_checknumber(l, -1);
 						prop.SetValue(obj, vec, null);
 					}
 						break;
 					case "y":
 					{
 						var vec = (Vector2) value;
-						vec.y = (float)LuaDLL.luaL_checknumber(l, -1);
+						vec.y = (float) LuaDLL.luaL_checknumber(l, -1);
 						prop.SetValue(obj, vec, null);
 					}
 						break;
@@ -250,28 +327,28 @@ namespace Assets.Scripts
 					case "a":
 					{
 						var ab = obj.Ab;
-						ab.x = (float)LuaDLL.luaL_checknumber(l, -1);
+						ab.x = (float) LuaDLL.luaL_checknumber(l, -1);
 						obj.Ab = ab;
 					}
 						break;
 					case "b":
 					{
 						var ab = obj.Ab;
-						ab.y = (float)LuaDLL.luaL_checknumber(l, -1);
+						ab.y = (float) LuaDLL.luaL_checknumber(l, -1);
 						obj.Ab = ab;
 					}
 						break;
 					case "hscale":
 					{
 						var scale = obj.Scale;
-						scale.x = (float)LuaDLL.luaL_checknumber(l, -1);
+						scale.x = (float) LuaDLL.luaL_checknumber(l, -1);
 						obj.Scale = scale;
 					}
 						break;
 					case "vscale":
 					{
 						var scale = obj.Scale;
-						scale.y = (float)LuaDLL.luaL_checknumber(l, -1);
+						scale.y = (float) LuaDLL.luaL_checknumber(l, -1);
 						obj.Scale = scale;
 					}
 						break;

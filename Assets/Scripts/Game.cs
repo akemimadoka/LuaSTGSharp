@@ -175,7 +175,7 @@ public class Game : MonoBehaviour
 
 			LuaDLL.lua_gc(l, LuaGCOptions.LUA_GCRESTART, -1);
 
-			ResourceManager.FindResourceAs<ResLuaScript>("launch").Execute();
+			ResourceManager.FindResourceAs<ResLuaScript>("launch").Execute(LuaVM.luaState);
 
 			LuaDLL.lua_pushglobaltable(l);
 			LuaTable globalTable;
@@ -187,7 +187,7 @@ public class Game : MonoBehaviour
 			GlobalTable = globalTable;
 			LuaDLL.lua_pop(l, 1);
 
-			ResourceManager.FindResourceAs<ResLuaScript>("core.lua").Execute();
+			ResourceManager.FindResourceAs<ResLuaScript>("core.lua").Execute(LuaVM.luaState);
 			
 			var gameInit = globalTable["GameInit"] as LuaFunction;
 			if (gameInit == null)

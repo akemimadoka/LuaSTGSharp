@@ -6,9 +6,22 @@ using CSCore;
 using UnityEngine;
 using CSCore.Codecs;
 using CSCore.Streams.SampleConverter;
+using SLua;
 
 namespace Assets.Scripts
 {
+	public enum BlendMode
+	{
+		AddAdd = 1,
+		AddAlpha,
+		AddSub,
+		AddRev,
+		MulAdd,
+		MulAlpha,
+		MulSub,
+		MulRev
+	};
+
 	/// <summary>
 	///     资源抽象基类
 	/// </summary>
@@ -304,9 +317,9 @@ namespace Assets.Scripts
 		{
 		}
 
-		public object Execute()
+		public object Execute(LuaState luaState)
 		{
-			return Game.GameInstance.LuaVM.luaState.doString(GetContent(), GetName());
+			return luaState.doString(GetContent(), GetName());
 		}
 	}
 
@@ -320,6 +333,7 @@ namespace Assets.Scripts
 		: Resource
 	{
 		private readonly Sprite _sprite;
+		private readonly Vector2 _ab;
 		private readonly bool _isRect;
 
 		public ResSprite(string name)
@@ -328,10 +342,11 @@ namespace Assets.Scripts
 			throw new NotSupportedException("This resource should be created manually.");
 		}
 
-		public ResSprite(string name, Sprite sprite, bool isRect)
+		public ResSprite(string name, Sprite sprite, float a, float b, bool isRect)
 			: base(name)
 		{
 			_sprite = sprite;
+			_ab = new Vector2(a, b);
 			_isRect = isRect;
 		}
 
@@ -343,6 +358,79 @@ namespace Assets.Scripts
 		public Sprite GetSprite()
 		{
 			return _sprite;
+		}
+
+		public Vector2 GetAb()
+		{
+			return _ab;
+		}
+
+		public bool IsRect()
+		{
+			return _isRect;
+		}
+	}
+
+	public class ResAnimation
+		: Resource
+	{
+		private readonly List<Sprite> _imageSequence = new List<Sprite>();
+		private readonly uint _interval;
+		public BlendMode BlendMode { get; set; }
+		private readonly Vector2 _halfSize;
+		private readonly bool _isRect;
+
+		public ResAnimation(string name)
+			: base(name)
+		{
+			throw new NotSupportedException("This resource should be created manually.");
+		}
+
+		public ResAnimation(string name, ResTexture texture, float x, float y, float width, float height, uint n, uint m,
+			uint interval, float a, float b, bool rect = false)
+			: base(name)
+		{
+			var rawTexture = texture.GetTexture();
+
+			for (uint j = 0; j < m; ++j)
+			{
+				for (uint i = 0; i < n; ++i)
+				{
+					var sprite = Sprite.Create(rawTexture,
+						new Rect(x + width * i, y + height * j, x + width * (i + 1), y + height * (j + 1)), new Vector2(0.5f, 0.5f));
+					_imageSequence.Add(sprite);
+				}
+			}
+
+			_interval = interval;
+			BlendMode = BlendMode.MulAlpha;
+			_halfSize = new Vector2(a, b);
+			_isRect = rect;
+		}
+
+		public override bool InitFromStream(Stream stream)
+		{
+			throw new NotSupportedException("This resource cannot be initialized from stream.");
+		}
+
+		public int GetCount()
+		{
+			return _imageSequence.Count;
+		}
+
+		public Sprite GetSprite(int index)
+		{
+			return index >= _imageSequence.Count ? null : _imageSequence[index];
+		}
+
+		public uint GetInterval()
+		{
+			return _interval;
+		}
+
+		public Vector2 GetHalfSize()
+		{
+			return _halfSize;
 		}
 
 		public bool IsRect()
@@ -395,7 +483,7 @@ namespace Assets.Scripts
 			return null;
 		}
 		
-		public Resource GetResourceAs(string name, Type asResourceType)
+		public Resource GetResourceAs(string name, Type asResourceType, string path = null)
 		{
 			Dictionary<string, Resource> resources;
 			if (!_resourcePool.TryGetValue(asResourceType, out resources))
@@ -406,6 +494,11 @@ namespace Assets.Scripts
 			Resource resource;
 			resources.TryGetValue(name, out resource);
 
+			if (path == null)
+			{
+				path = name;
+			}
+
 			if (resource == null)
 			{
 				var constructor = asResourceType.GetConstructor(new[] { typeof(string) });
@@ -414,7 +507,7 @@ namespace Assets.Scripts
 					resource = constructor.Invoke(new object[] { name }) as Resource;
 					if (resource != null)
 					{
-						using (var stream = _resourceManager.GetResourceStream(name))
+						using (var stream = _resourceManager.GetResourceStream(path))
 						{
 							if (stream == null || !resource.InitFromStream(stream))
 							{
@@ -431,9 +524,9 @@ namespace Assets.Scripts
 			return resource;
 		}
 
-		public T GetResourceAs<T>(string name) where T : Resource
+		public T GetResourceAs<T>(string name, string path = null) where T : Resource
 		{
-			return GetResourceAs(name, typeof(T)) as T;
+			return GetResourceAs(name, typeof(T), path) as T;
 		}
 
 		public bool AddResource(Resource resource)
@@ -452,6 +545,12 @@ namespace Assets.Scripts
 
 			resources.Add(resource.GetName(), resource);
 			return true;
+		}
+
+		public bool ResourceExists(string name, Type resourceType)
+		{
+			Dictionary<string, Resource> resources;
+			return _resourcePool.TryGetValue(resourceType, out resources) && resources.ContainsKey(name);
 		}
 
 		public void Clear()
@@ -591,23 +690,23 @@ namespace Assets.Scripts
 					.FirstOrDefault(resource => resource != null);
 		}
 
-		public Resource FindResourceAs(string name, Type resourceType)
+		public Resource FindResourceAs(string name, Type resourceType, string path = null)
 		{
 			ThrowIfDisposed();
 			return Enum.GetValues(typeof(ResourcePoolType))
 					.OfType<ResourcePoolType>()
 					.Reverse()
-					.Select(resourcePoolType => _resourcePools[resourcePoolType].GetResourceAs(name, resourceType))
+					.Select(resourcePoolType => _resourcePools[resourcePoolType].GetResourceAs(name, resourceType, path))
 					.FirstOrDefault(resource => resource != null);
 		}
 
-		public T FindResourceAs<T>(string name) where T : Resource
+		public T FindResourceAs<T>(string name, string path = null) where T : Resource
 		{
 			ThrowIfDisposed();
 			return Enum.GetValues(typeof(ResourcePoolType))
 					.OfType<ResourcePoolType>()
 					.Reverse()
-					.Select(resourcePoolType => _resourcePools[resourcePoolType].GetResourceAs<T>(name))
+					.Select(resourcePoolType => _resourcePools[resourcePoolType].GetResourceAs<T>(name, path))
 					.FirstOrDefault(resource => resource != null);
 		}
 	}
