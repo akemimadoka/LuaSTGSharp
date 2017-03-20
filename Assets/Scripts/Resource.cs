@@ -132,6 +132,7 @@ namespace Assets.Scripts
 	public class ResTexture
 		: Resource
 	{
+		private readonly bool _mipmap;
 		private Texture2D _texture;
 		private Material _cachedMaterial;
 
@@ -139,7 +140,13 @@ namespace Assets.Scripts
 			: base(name)
 		{
 		}
-		
+
+		public ResTexture(string name, bool mipmap)
+			: base(name)
+		{
+			_mipmap = mipmap;
+		}
+
 		public override bool InitFromStream(Stream stream)
 		{
 			if (_texture != null)
@@ -147,7 +154,7 @@ namespace Assets.Scripts
 				return false;
 			}
 
-			_texture = new Texture2D(0, 0);
+			_texture = new Texture2D(0, 0, TextureFormat.RGBA32, _mipmap);
 			var buffer = new byte[stream.Length];
 			stream.Read(buffer, 0, (int) stream.Length);
 			return _texture.LoadImage(buffer);

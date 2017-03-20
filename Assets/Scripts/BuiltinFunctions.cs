@@ -144,30 +144,27 @@ namespace Assets.Scripts
 
 			var attrRegex = new Regex(@"\b(.*)([xy]?)\b", RegexOptions.Compiled);
 			var match = attrRegex.Match(key);
-			if (match.Success)
+			if (!match.Success)
 			{
-				var propName = match.Groups[1].Value;
+				return LuaDLL.luaL_error(l, "key '{0}' is invalid", key);
+			}
+			var propName = match.Groups[1].Value;
 
-				var prop = LSTGObject.FindProperty(propName);
-				if (prop != null)
+			var prop = LSTGObject.FindProperty(propName);
+			if (prop != null)
+			{
+				var value = prop.GetValue(obj, null);
+				switch (match.Groups[2].Value)
 				{
-					var value = prop.GetValue(obj, null);
-					switch (match.Groups[2].Value)
-					{
-						case "x":
-							LuaObject.pushValue(l, ((Vector2) value).x);
-							break;
-						case "y":
-							LuaObject.pushValue(l, ((Vector2) value).y);
-							break;
-						default:
-							LuaObject.pushValue(l, value);
-							break;
-					}
-				}
-				else
-				{
-					return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
+					case "x":
+						LuaObject.pushValue(l, ((Vector2) value).x);
+						break;
+					case "y":
+						LuaObject.pushValue(l, ((Vector2) value).y);
+						break;
+					default:
+						LuaObject.pushValue(l, value);
+						break;
 				}
 			}
 			else
@@ -185,6 +182,9 @@ namespace Assets.Scripts
 						break;
 					case "vscale":
 						LuaObject.pushValue(l, obj.Scale.y);
+						break;
+					case "img":
+						LuaObject.pushValue(l, obj.RenderResource.GetName());
 						break;
 					default:
 						return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
@@ -212,38 +212,35 @@ namespace Assets.Scripts
 
 			var attrRegex = new Regex(@"\b(.*)([xy]?)\b", RegexOptions.Compiled);
 			var match = attrRegex.Match(key);
-			if (match.Success)
+			if (!match.Success)
 			{
-				var propName = match.Groups[1].Value;
+				return LuaDLL.luaL_error(l, "key '{0}' is invalid", key);
+			}
+			var propName = match.Groups[1].Value;
 
-				var prop = LSTGObject.FindProperty(propName);
-				if (prop != null)
+			var prop = LSTGObject.FindProperty(propName);
+			if (prop != null)
+			{
+				var value = prop.GetValue(obj, null);
+				switch (match.Groups[2].Value)
 				{
-					var value = prop.GetValue(obj, null);
-					switch (match.Groups[2].Value)
+					case "x":
 					{
-						case "x":
-						{
-							var vec = (Vector2) value;
-							vec.x = (float)LuaDLL.luaL_checknumber(l, -1);
-							prop.SetValue(obj, vec, null);
-						}
-							break;
-						case "y":
-						{
-							var vec = (Vector2) value;
-							vec.y = (float)LuaDLL.luaL_checknumber(l, -1);
-							prop.SetValue(obj, vec, null);
-						}
-							break;
-						default:
-							prop.SetValue(obj, LuaObject.checkVar(l, -1), null);
-							break;
+						var vec = (Vector2) value;
+						vec.x = (float)LuaDLL.luaL_checknumber(l, -1);
+						prop.SetValue(obj, vec, null);
 					}
-				}
-				else
-				{
-					return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
+						break;
+					case "y":
+					{
+						var vec = (Vector2) value;
+						vec.y = (float)LuaDLL.luaL_checknumber(l, -1);
+						prop.SetValue(obj, vec, null);
+					}
+						break;
+					default:
+						prop.SetValue(obj, LuaObject.checkVar(l, -1), null);
+						break;
 				}
 			}
 			else
@@ -278,6 +275,17 @@ namespace Assets.Scripts
 						obj.Scale = scale;
 					}
 						break;
+					case "img":
+					{
+						string resName;
+						LuaObject.checkType(l, -1, out resName);
+						if (string.IsNullOrEmpty(resName))
+						{
+							return LuaDLL.luaL_error(l, "invalid img");
+						}
+						obj.RenderResource = Game.GameInstance.ResourceManager.FindResource(resName);
+					}
+						break;
 					default:
 						return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
 				}
@@ -286,9 +294,10 @@ namespace Assets.Scripts
 			return 0;
 		}
 
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		public static int New(IntPtr l)
 		{
-			return 0;
+			return Game.GameInstance.NewObject(l);
 		}
 
 		public static void Register(IntPtr l)
@@ -312,7 +321,7 @@ namespace Assets.Scripts
 			LuaDLL.lua_gettable(l, -2);
 			LuaDLL.lua_pushstring(l, "SetAttr");
 			LuaDLL.lua_gettable(l, -3);
-			Debug.Assert(LuaDLL.lua_iscfunction(l, -1), LuaDLL.lua_iscfunction(l, -2));
+			//Debug.Assert(LuaDLL.lua_iscfunction(l, -1) && LuaDLL.lua_iscfunction(l, -2));
 			LuaDLL.lua_setfield(l, -4, "__newindex");
 			LuaDLL.lua_setfield(l, -3, "__index");
 			LuaDLL.lua_pop(l, 1);

@@ -69,7 +69,7 @@ namespace SLua
 	public partial class LuaObject
 	{
 #region enum
-		static public bool checkEnum<T>(IntPtr l, int p, out T o) where T : struct
+		public static bool checkEnum<T>(IntPtr l, int p, out T o) where T : struct
 		{
 			int i = (int) LuaDLL.luaL_checkinteger (l, p);
 			o = (T)Enum.ToObject(typeof(T), i);
@@ -99,7 +99,7 @@ namespace SLua
 	#endregion
 
 		#region byte
-		static public bool checkType(IntPtr l, int p, out byte v)
+		public static bool checkType(IntPtr l, int p, out byte v)
 		{
 			v = (byte)LuaDLL.luaL_checkinteger(l, p);
 			return true;
@@ -115,7 +115,7 @@ namespace SLua
 		#endregion
 
 		#region char
-		static public bool checkType(IntPtr l, int p,out char c)
+		public static bool checkType(IntPtr l, int p,out char c)
 		{
 			c = (char)LuaDLL.luaL_checkinteger(l, p);
 			return true;
@@ -126,7 +126,7 @@ namespace SLua
 			LuaDLL.lua_pushinteger(l, v);
 		}
 
-		static public bool checkArray(IntPtr l, int p, out char[] pars)
+		public static bool checkArray(IntPtr l, int p, out char[] pars)
 		{
 			LuaDLL.luaL_checktype(l, p, LuaTypes.LUA_TSTRING);
 			string s;
@@ -137,7 +137,7 @@ namespace SLua
 		#endregion
 
 		#region short
-		static public bool checkType(IntPtr l, int p, out short v)
+		public static bool checkType(IntPtr l, int p, out short v)
 		{
 			v = (short)LuaDLL.luaL_checkinteger(l, p);
 			return true;
@@ -150,7 +150,7 @@ namespace SLua
 		#endregion
 
 		#region ushort
-		static public bool checkType(IntPtr l, int p, out ushort v)
+		public static bool checkType(IntPtr l, int p, out ushort v)
 		{
 			v = (ushort)LuaDLL.luaL_checkinteger(l, p);
 			return true;
@@ -164,7 +164,7 @@ namespace SLua
 		#endregion
 
 		#region int
-		static public bool checkType(IntPtr l, int p, out int v)
+		public static bool checkType(IntPtr l, int p, out int v)
 		{
 			v = (int)LuaDLL.luaL_checkinteger(l, p);
 			return true;
@@ -178,7 +178,7 @@ namespace SLua
 		#endregion
 		
 		#region uint
-		static public bool checkType(IntPtr l, int p, out uint v)
+		public static bool checkType(IntPtr l, int p, out uint v)
 		{
 			v = (uint)LuaDLL.luaL_checkinteger(l, p);
 			return true;
@@ -191,7 +191,7 @@ namespace SLua
 		#endregion
 
 		#region long
-		static public bool checkType(IntPtr l, int p, out long v)
+		public static bool checkType(IntPtr l, int p, out long v)
 		{
 #if LUA_5_3
             v = (long)LuaDLL.luaL_checkinteger(l, p);
@@ -213,7 +213,7 @@ namespace SLua
 		#endregion
 
 		#region ulong
-		static public bool checkType(IntPtr l, int p, out ulong v)
+		public static bool checkType(IntPtr l, int p, out ulong v)
 		{
 #if LUA_5_3
 			v = (ulong)LuaDLL.luaL_checkinteger(l, p);
@@ -252,7 +252,7 @@ namespace SLua
 		#endregion
 
 		#region double
-		static public bool checkType(IntPtr l, int p, out double v)
+		public static bool checkType(IntPtr l, int p, out double v)
 		{
 			v = LuaDLL.luaL_checknumber(l, p);
 			return true;
@@ -267,7 +267,7 @@ namespace SLua
 #endregion
 
 		#region bool
-		static public bool checkType(IntPtr l, int p, out bool v)
+		public static bool checkType(IntPtr l, int p, out bool v)
 		{
 			LuaDLL.luaL_checktype(l, p, LuaTypes.LUA_TBOOLEAN);
 			v = LuaDLL.lua_toboolean(l, p);
@@ -282,7 +282,7 @@ namespace SLua
 		#endregion
 
 		#region string
-		static public bool checkType(IntPtr l, int p, out string v)
+		public static bool checkType(IntPtr l, int p, out string v)
 		{
 			if(LuaDLL.lua_isuserdata(l,p)>0)
 			{
@@ -303,7 +303,7 @@ namespace SLua
 			return false;
 		}
 
-		static public bool checkBinaryString(IntPtr l,int p,out byte[] bytes){
+		public static bool checkBinaryString(IntPtr l,int p,out byte[] bytes){
 			if(LuaDLL.lua_isstring(l,p)){
 				bytes = LuaDLL.lua_tobytes(l, p);
 				return true;
@@ -321,7 +321,7 @@ namespace SLua
 		#endregion
 
 		#region IntPtr
-		static public bool checkType(IntPtr l, int p, out IntPtr v)
+		public static bool checkType(IntPtr l, int p, out IntPtr v)
 		{
 			v = LuaDLL.lua_touserdata(l, p);
 			return true;
@@ -329,7 +329,7 @@ namespace SLua
 		#endregion
 
 		#region LuaType
-		static public bool checkType(IntPtr l, int p, out LuaDelegate f)
+		public static bool checkType(IntPtr l, int p, out LuaDelegate f)
 		{
 			LuaState state = LuaState.get(l);
 
@@ -358,7 +358,7 @@ namespace SLua
 			return true;
 		}
 		
-		static public bool checkType(IntPtr l, int p, out LuaThread lt)
+		public static bool checkType(IntPtr l, int p, out LuaThread lt)
 		{
 			if (LuaDLL.lua_isnil(l, p))
 			{
@@ -372,7 +372,7 @@ namespace SLua
 			return true;
 		}
 
-        static public bool checkType(IntPtr l, int p, out LuaFunction f)
+        public static bool checkType(IntPtr l, int p, out LuaFunction f)
 		{
 			if (LuaDLL.lua_isnil(l, p))
 			{
@@ -386,7 +386,7 @@ namespace SLua
 			return true;
 		}
 
-		static public bool checkType(IntPtr l, int p, out LuaTable t)
+		public static bool checkType(IntPtr l, int p, out LuaTable t)
 		{
 			if (LuaDLL.lua_isnil(l, p))
 			{
@@ -440,7 +440,7 @@ namespace SLua
 		}
 
 
-		static public bool checkType(IntPtr l, int p, out Type t)
+		public static bool checkType(IntPtr l, int p, out Type t)
 		{
 			string tname = null;
 			LuaTypes lt = LuaDLL.lua_type(l, p);
@@ -490,14 +490,14 @@ namespace SLua
 		#endregion
 
 		#region struct
-		static public bool checkValueType<T>(IntPtr l, int p, out T v) where T:struct
+		public static bool checkValueType<T>(IntPtr l, int p, out T v) where T:struct
 		{
 			v = (T) checkObj(l, p);
 			return true;
 		}
 		#endregion
 
-		static public bool checkNullable<T>(IntPtr l, int p, out Nullable<T> v) where T : struct
+		public static bool checkNullable<T>(IntPtr l, int p, out Nullable<T> v) where T : struct
 		{
 			if (LuaDLL.lua_isnil(l, p))
 				v = null;
@@ -511,7 +511,7 @@ namespace SLua
 		}
 
 		#region object
-		static public bool checkType<T>(IntPtr l, int p, out T o) where T:class
+		public static bool checkType<T>(IntPtr l, int p, out T o) where T:class
 		{
 			object obj = checkVar(l, p);
 			if (obj == null)

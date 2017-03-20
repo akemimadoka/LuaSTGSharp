@@ -70,7 +70,7 @@ public class LSTGObject : MonoBehaviour
 			float angle;
 			Vector3 axis;
 			transform.rotation.ToAngleAxis(out angle, out axis);
-			Debug.Assert(axis == Vector3.forward);
+			//Debug.Assert(axis == Vector3.forward);
 			return angle;
 		}
 		set { transform.rotation = Quaternion.AngleAxis(value, Vector3.forward); }
@@ -166,10 +166,58 @@ public class LSTGObject : MonoBehaviour
 	[LObjectPropertyAliasAs("ani_timer")]
 	public int AniTimer { get; private set; }
 
-	public Resource RenderResource { get; set; }
-	public ResParticle Particle { get; set; }
+	private Resource _renderResource;
+	public Resource RenderResource
+	{
+		get { return _renderResource; }
+		set
+		{
+			UnloadRenderResource();
+			_renderResource = value;
+			LoadRenderResource();
+		}
+	}
 
 	private LuaTable _luaTable;
+
+	private void UnloadRenderResource()
+	{
+		if (_renderResource == null)
+		{
+			return;
+		}
+
+		if (_renderResource is ResSprite)
+		{
+			Destroy(gameObject.GetComponent<SpriteRenderer>());
+		}
+		else if (_renderResource is ResParticle)
+		{
+			Destroy(gameObject.GetComponent<ParticleSystem>());
+		}
+
+		_renderResource = null;
+	}
+
+	private void LoadRenderResource()
+	{
+		if (_renderResource == null)
+		{
+			return;
+		}
+
+		if (_renderResource is ResSprite)
+		{
+			var spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+			spriteRenderer.sprite = ((ResSprite) _renderResource).GetSprite();
+		}
+		else if (_renderResource is ResParticle)
+		{
+			var resParticle = (ResParticle) _renderResource;
+			var particleSys = gameObject.AddComponent<ParticleSystem>();
+			resParticle.SetParticleSystem(particleSys);
+		}
+	}
 
 	// Use this for initialization
 	private void Start()
@@ -178,6 +226,7 @@ public class LSTGObject : MonoBehaviour
 		gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
 		LastPosition = transform.position;
 		Delta = Vector2.zero;
+		Rotation = 0;
 		Omiga = 0;
 		Velocity = Vector2.zero;
 		Acceleration = Vector2.zero;
@@ -189,7 +238,7 @@ public class LSTGObject : MonoBehaviour
 		AniTimer = 0;
 	}
 
-	private void OnAcquireLuaTable(LuaTable luaTable)
+	public void OnAcquireLuaTable(LuaTable luaTable)
 	{
 		_luaTable = luaTable;
 	}
@@ -197,7 +246,10 @@ public class LSTGObject : MonoBehaviour
 	// Update is called once per frame
 	private void Update()
 	{
-		LastPosition = transform.position;
+		if (_luaTable == null)
+		{
+			return;
+		}
 
 		var frameFunc = _luaTable[3] as LuaFunction;
 		if (frameFunc != null)
@@ -205,18 +257,41 @@ public class LSTGObject : MonoBehaviour
 			frameFunc.call(_luaTable);
 		}
 
+		LastPosition = transform.position;
+		Velocity += Acceleration;
+		CurrentPosition += Velocity;
+		Rotation += Omiga;
+
 		// AfterFrame？
 		++Timer;
 		++AniTimer;
 
-		if (ObjectStatus != Status.Default)
+		if (ObjectStatus != Status.Default && ObjectStatus != Status.Free)
 		{
 			Destroy(gameObject);
 		}
 	}
 
+	public void KillSelf()
+	{
+		ObjectStatus = Status.Kill;
+	}
+
+	public void DelSelf()
+	{
+		ObjectStatus = Status.Del;
+	}
+
 	private void OnTriggerEnter2D(Collider2D collision)
 	{
 
+	}
+
+	private void OnTriggerExit2D(Collider2D collision)
+	{
+		if (collision == Game.GameInstance.Bound && Bound)
+		{
+			DelSelf();
+		}
 	}
 }

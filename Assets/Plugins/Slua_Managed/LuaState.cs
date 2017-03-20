@@ -1019,7 +1019,7 @@ end
 		{
 			int oldTop = LuaDLL.lua_gettop(L);
 			LuaDLL.lua_getref(L, reference);
-			object returnValue = getObject(field.Split(new char[] { '.' }));
+			object returnValue = getObject(field.Split('.'));
 			LuaDLL.lua_settop(L, oldTop);
 			return returnValue;
 		}

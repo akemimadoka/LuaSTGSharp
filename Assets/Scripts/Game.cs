@@ -34,6 +34,7 @@ public class Game : MonoBehaviour
 
 	public LuaTable GlobalTable { get; private set; }
 
+	private LuaFunction _gameExitFunc;
 	private LuaFunction _focusLoseFunc;
 	private LuaFunction _focusGainFunc;
 	private LuaFunction _frameFunc;
@@ -74,6 +75,51 @@ public class Game : MonoBehaviour
 	{
 		var mainCamera = Camera.main;
 		mainCamera.rect = new Rect(left, bottom, right - left, top - bottom);
+	}
+
+	public int NewObject(IntPtr l)
+	{
+		LuaTable classTable;
+		LuaObject.checkType(l, 1, out classTable);
+		if (classTable == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument #1, luastg object class required for 'New'.");
+		}
+		if (!(classTable["is_class"] is bool))
+		{
+			return LuaDLL.luaL_error(l, "invalid argument #1, luastg object class required for 'New'.");
+		}
+
+		var resultObj = new GameObject();
+		var lstgObj = resultObj.AddComponent<LSTGObject>();
+		ObjectDictionary.Add(lstgObj.Id, lstgObj);
+
+		LuaDLL.lua_pushlightuserdata(l, l);
+		LuaDLL.lua_gettable(l, LuaIndexes.LUA_REGISTRYINDEX);
+		LuaDLL.lua_createtable(l, 2, 0);
+		LuaDLL.lua_pushvalue(l, 1);  // t(class) ... ot t(object) class
+		LuaDLL.lua_rawseti(l, -2, 1);  // t(class) ... ot t(object)  设置class
+		LuaDLL.lua_pushinteger(l, lstgObj.Id);  // t(class) ... ot t(object) id
+		LuaDLL.lua_rawseti(l, -2, 2);  // t(class) ... ot t(object)  设置id
+		LuaDLL.lua_getfield(l, -2, "mt");  // t(class) ... ot t(object) mt
+		LuaDLL.lua_setmetatable(l, -2);  // t(class) ... ot t(object)  设置元表
+		LuaDLL.lua_pushvalue(l, -1);  // t(class) ... ot t(object) t(object)
+		LuaDLL.lua_rawseti(l, -3, lstgObj.Id + 1);  // t(class) ... ot t(object)  设置到全局表
+		LuaDLL.lua_insert(l, 1);  // t(object) t(class) ... ot
+		LuaDLL.lua_pop(l, 1);  // t(object) t(class) ...
+		//LuaDLL.lua_rawgeti(l, 2, 1);  // t(object) t(class) ... f(init)
+		LuaDLL.lua_getfield(l, 2, "init");
+		LuaDLL.lua_insert(l, 3);  // t(object) t(class) f(init) ...
+		LuaDLL.lua_pushvalue(l, 1);  // t(object) t(class) f(init) ... t(object)
+		LuaDLL.lua_insert(l, 4);  // t(object) t(class) f(init) t(object) ...
+		LuaDLL.lua_call(l, LuaDLL.lua_gettop(l) - 3, 0);  // t(object) t(class)  执行构造函数
+		LuaDLL.lua_pop(l, 1);  // t(object)
+
+		LuaTable objTable;
+		LuaObject.checkType(l, -1, out objTable);
+		lstgObj.OnAcquireLuaTable(objTable);
+
+		return 1;
 	}
 
 	public LSTGObject GetObject(int id)
@@ -148,7 +194,13 @@ public class Game : MonoBehaviour
 			{
 				throw new Exception("GameInit does not exist or is not a function");
 			}
-			
+
+			_gameExitFunc = globalTable["GameExit"] as LuaFunction;
+			if (_gameExitFunc == null)
+			{
+				throw new Exception("GameExit does not exist or is not a function");
+			}
+
 			_focusLoseFunc = globalTable["FocusLoseFunc"] as LuaFunction;
 			if (_focusLoseFunc == null)
 			{
@@ -206,7 +258,12 @@ public class Game : MonoBehaviour
 			CurrentStatus = Status.Aborted;
 		}
 	}
-	
+
+	private void OnApplicationQuit()
+	{
+
+	}
+
 	private void OnApplicationFocus(bool focus)
 	{
 		// 可能在初始化完成之前被调用，因此我们必须检查状态
@@ -236,8 +293,7 @@ public class Game : MonoBehaviour
 			
 		}
 	}
-	// TODO: 完成默认类元表
-	// lua端对象通过元表调用GetAttr/SetAttr取得/设置属性，无需重复赋值给lua端
+	// TODO: 完成资源加载及渲染
 	// 对象是否还需要排序？是否需要重用？
 	// 还有多少未实现的API？
 }

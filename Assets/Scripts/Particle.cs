@@ -55,7 +55,6 @@ namespace Assets.Scripts
 		private readonly ParticleInfo _particleInfo = new ParticleInfo();
 		private bool _loaded;
 		private Material _material;
-		private ParticleSystem _particleSystem;
 		
 		public ResParticle(string name)
 			: base(name)
@@ -86,34 +85,38 @@ namespace Assets.Scripts
 			_material = material;
 		}
 
-		public ParticleSystem GetParticleSystem()
+		public void SetParticleSystem(ParticleSystem particleSystem)
 		{
 			if (!_loaded || _material == null)
 			{
-				return null;
+				return;
 			}
 
-			if (_particleSystem == null)
+			if (particleSystem == null)
 			{
-				_particleSystem = new ParticleSystem();
-
-				// TODO: 完成粒子系统的配置
-				var main = _particleSystem.main;
-				var emission = _particleSystem.emission;
-				var renderer = _particleSystem.GetComponent<Renderer>();
-
-				// BlendInfo unknown
-				emission.rateOverTime = _particleInfo.Emission;
-				main.duration = _particleInfo.Lifetime;
-				main.startLifetime = new ParticleSystem.MinMaxCurve(_particleInfo.ParticleLifeMin, _particleInfo.ParticleLifeMax);
-				main.startRotation = _particleInfo.Direction;
-				main.randomizeRotationDirection = _particleInfo.Spread;
-				// Relative unknown
-				main.startSpeed = new ParticleSystem.MinMaxCurve(_particleInfo.SpeedMin, _particleInfo.SpeedMax);
-				main.gravityModifier = new ParticleSystem.MinMaxCurve(_particleInfo.GravityMin, _particleInfo.GravityMax);
+				return;
 			}
 
-			return _particleSystem;
+			// TODO: 完成粒子系统的配置
+			var main = particleSystem.main;
+			var emission = particleSystem.emission;
+			var renderer = particleSystem.GetComponent<Renderer>();
+
+			renderer.material = _material;
+
+			// BlendInfo unknown
+			emission.rateOverTime = _particleInfo.Emission;
+			main.duration = _particleInfo.Lifetime;
+			main.startLifetime = new ParticleSystem.MinMaxCurve(_particleInfo.ParticleLifeMin, _particleInfo.ParticleLifeMax);
+			main.startRotation = _particleInfo.Direction;
+			main.randomizeRotationDirection = _particleInfo.Spread;
+			// Relative unknown
+			main.startSpeed = new ParticleSystem.MinMaxCurve(_particleInfo.SpeedMin, _particleInfo.SpeedMax);
+			main.gravityModifier = new ParticleSystem.MinMaxCurve(_particleInfo.GravityMin, _particleInfo.GravityMax);
+			// RadialAccel unknown
+			// TangentialAccel unknown
+			main.startSize = _particleInfo.SizeStart;
+
 		}
 	}
 }
