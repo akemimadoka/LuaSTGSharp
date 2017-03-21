@@ -91,8 +91,11 @@ end
 
 function GameInit()
 	lstg.Print("GameInit");
+	lstg.LoadTexture("undefinedTex", "undefined.png");
+	lstg.LoadImage("undefined", "undefinedTex", 0, 0, 1, 1)
 	local obj = lstg.New(object);
-	--obj.img = "undefined";
+	lstg.Print(obj.x, obj.img == nil);
+	obj.img = "undefined";
 end
 
 function GameExit()

@@ -164,6 +164,8 @@ namespace Assets.Scripts
 		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		public static int LoadImage(IntPtr l)
 		{
+			var top = LuaDLL.lua_gettop(l);
+
 			string name, textureName;
 			LuaObject.checkType(l, 1, out name);
 			LuaObject.checkType(l, 2, out textureName);
@@ -188,12 +190,24 @@ namespace Assets.Scripts
 				(float) LuaDLL.luaL_checknumber(l, 4),
 				(float) LuaDLL.luaL_checknumber(l, 5),
 				(float) LuaDLL.luaL_checknumber(l, 6)), new Vector2(0.5f, 0.5f));
+			
+			float a = 0, b = 0;
+			var rect = false;
 
-			float a, b;
-			bool rect;
-			LuaObject.checkType(l, 7, out a);
-			LuaObject.checkType(l, 8, out b);
-			LuaObject.checkType(l, 9, out rect);
+			if (top >= 7)
+			{
+				LuaObject.checkType(l, 7, out a);
+			}
+
+			if (top >= 8)
+			{
+				LuaObject.checkType(l, 8, out b);
+			}
+
+			if (top >= 9)
+			{
+				LuaObject.checkType(l, 9, out rect);
+			}
 
 			if (!activedPool.AddResource(new ResSprite(name, sprite, a, b, rect)))
 			{
@@ -219,19 +233,21 @@ namespace Assets.Scripts
 				return LuaDLL.luaL_error(l, "invalid key for 'GetAttr'");
 			}
 
-			var attrRegex = new Regex(@"\b(.*)([xy]?)\b", RegexOptions.Compiled);
+			var attrRegex = new Regex(@"^(\w*?)([xy]?)$", RegexOptions.Compiled);
 			var match = attrRegex.Match(key);
 			if (!match.Success)
 			{
 				return LuaDLL.luaL_error(l, "key '{0}' is invalid", key);
 			}
 			var propName = match.Groups[1].Value;
-
+			var optDimension = match.Groups[2].Value;
+			
+			var noAliasProperty = false;
 			var prop = LSTGObject.FindProperty(propName);
 			if (prop != null)
 			{
 				var value = prop.GetValue(obj, null);
-				switch (match.Groups[2].Value)
+				switch (optDimension)
 				{
 					case "x":
 						LuaObject.pushValue(l, ((Vector2) value).x);
@@ -239,12 +255,16 @@ namespace Assets.Scripts
 					case "y":
 						LuaObject.pushValue(l, ((Vector2) value).y);
 						break;
-					default:
+					case "":
 						LuaObject.pushValue(l, value);
+						break;
+					default:
+						noAliasProperty = true;
 						break;
 				}
 			}
-			else
+
+			if (prop == null || noAliasProperty)
 			{
 				switch (key)
 				{
@@ -261,7 +281,7 @@ namespace Assets.Scripts
 						LuaObject.pushValue(l, obj.Scale.y);
 						break;
 					case "img":
-						LuaObject.pushValue(l, obj.RenderResource.GetName());
+						LuaObject.pushValue(l, obj.RenderResource == null ? null : obj.RenderResource.GetName());
 						break;
 					default:
 						return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
@@ -366,6 +386,20 @@ namespace Assets.Scripts
 					default:
 						return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
 				}
+			}
+
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int DefaultRenderFunc(IntPtr l)
+		{
+			LuaTable table;
+			LuaObject.checkType(l, 1, out table);
+			var obj = Game.GameInstance.GetObject((int) table[1]);
+			if (obj != null && obj)
+			{
+				obj.DefaultRenderFunc();
 			}
 
 			return 0;

@@ -172,6 +172,11 @@ public class LSTGObject : MonoBehaviour
 		get { return _renderResource; }
 		set
 		{
+			if (_renderResource == value)
+			{
+				return;
+			}
+
 			UnloadRenderResource();
 			_renderResource = value;
 			LoadRenderResource();
@@ -187,7 +192,7 @@ public class LSTGObject : MonoBehaviour
 			return;
 		}
 
-		if (_renderResource is ResSprite)
+		if (_renderResource is ResSprite || _renderResource is ResAnimation)
 		{
 			Destroy(gameObject.GetComponent<SpriteRenderer>());
 		}
@@ -206,10 +211,16 @@ public class LSTGObject : MonoBehaviour
 			return;
 		}
 
-		if (_renderResource is ResSprite)
+		var sprite = _renderResource as ResSprite;
+		if (sprite != null)
 		{
 			var spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
-			spriteRenderer.sprite = ((ResSprite) _renderResource).GetSprite();
+			spriteRenderer.sprite = sprite.GetSprite();
+		}
+		else if (_renderResource is ResAnimation)
+		{
+			var spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+			spriteRenderer.sprite = ((ResAnimation) _renderResource).GetSprite(0);
 		}
 		else if (_renderResource is ResParticle)
 		{
@@ -220,7 +231,7 @@ public class LSTGObject : MonoBehaviour
 	}
 
 	// Use this for initialization
-	private void Start()
+	public void Start()
 	{
 		ObjectStatus = Status.Free;
 		gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
@@ -244,14 +255,14 @@ public class LSTGObject : MonoBehaviour
 	}
 
 	// Update is called once per frame
-	private void Update()
+	public void Update()
 	{
 		if (_luaTable == null)
 		{
 			return;
 		}
 
-		var frameFunc = _luaTable[3] as LuaFunction;
+		var frameFunc = _luaTable["frame"] as LuaFunction;
 		if (frameFunc != null)
 		{
 			frameFunc.call(_luaTable);
@@ -262,7 +273,7 @@ public class LSTGObject : MonoBehaviour
 		CurrentPosition += Velocity;
 		Rotation += Omiga;
 
-		// AfterFrame？
+		// AfterFrame?
 		++Timer;
 		++AniTimer;
 
@@ -270,6 +281,24 @@ public class LSTGObject : MonoBehaviour
 		{
 			Destroy(gameObject);
 		}
+
+		var renderFunc = _luaTable["render"] as LuaFunction;
+		if (renderFunc != null)
+		{
+			renderFunc.call(_luaTable);
+		}
+	}
+
+	public void DefaultRenderFunc()
+	{
+		var ani = _renderResource as ResAnimation;
+		if (ani == null)
+		{
+			return;
+		}
+
+		var spriteRenderer = GetComponent<SpriteRenderer>();
+		spriteRenderer.sprite = ani.GetSprite((int) (AniTimer / ani.GetInterval()) % ani.GetCount());
 	}
 
 	public void KillSelf()
@@ -282,12 +311,22 @@ public class LSTGObject : MonoBehaviour
 		ObjectStatus = Status.Del;
 	}
 
-	private void OnTriggerEnter2D(Collider2D collision)
+	public void OnTriggerEnter2D(Collider2D collision)
 	{
+		var other = collision.gameObject.GetComponent<LSTGObject>();
+		if (other == null || !other || !Game.GameInstance.ShouldCollideWith(Group, other.Group))
+		{
+			return;
+		}
 
+		var colliFunc = _luaTable["colli"] as LuaFunction;
+		if (colliFunc != null)
+		{
+			colliFunc.call(_luaTable, other._luaTable);
+		}
 	}
 
-	private void OnTriggerExit2D(Collider2D collision)
+	public void OnTriggerExit2D(Collider2D collision)
 	{
 		if (collision == Game.GameInstance.Bound && Bound)
 		{

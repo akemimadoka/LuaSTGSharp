@@ -28,6 +28,7 @@ public class Game : MonoBehaviour
 	public LuaSvr LuaVM { get; private set; }
 	public ResourceManager ResourceManager { get; private set; }
 	public readonly Dictionary<int, LSTGObject> ObjectDictionary = new Dictionary<int, LSTGObject>();
+	private readonly Dictionary<int, HashSet<int>> _collisionGroups = new Dictionary<int, HashSet<int>>();
 	public Collider2D Bound { get; private set; }
 
 	public float CurrentFPS { get; private set; }
@@ -128,7 +129,39 @@ public class Game : MonoBehaviour
 		ObjectDictionary.TryGetValue(id, out result);
 		return result;
 	}
-	
+
+	public void RegisterCollisionGroup(int group, int groupToCollide)
+	{
+		HashSet<int> collision;
+		if (!_collisionGroups.TryGetValue(group, out collision))
+		{
+			collision = new HashSet<int>();
+			_collisionGroups.Add(group, collision);
+		}
+
+		collision.Add(groupToCollide);
+	}
+
+	public void UnregisterCollisionGroup(int group, int groupToCollide)
+	{
+		HashSet<int> collision;
+		if (_collisionGroups.TryGetValue(group, out collision))
+		{
+			collision.Remove(groupToCollide);
+		}
+	}
+
+	public void UnregisterAllCollisionGroup(int group)
+	{
+		_collisionGroups.Remove(group);
+	}
+
+	public bool ShouldCollideWith(int group, int groupToCollide)
+	{
+		HashSet<int> collision;
+		return _collisionGroups.TryGetValue(group, out collision) && collision.Contains(groupToCollide);
+	}
+
 	private void Awake()
 	{
 		switch (Application.platform)
