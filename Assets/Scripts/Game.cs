@@ -29,7 +29,7 @@ public class Game : MonoBehaviour
 	public ResourceManager ResourceManager { get; private set; }
 	public readonly Dictionary<int, LSTGObject> ObjectDictionary = new Dictionary<int, LSTGObject>();
 	private readonly Dictionary<int, HashSet<int>> _collisionGroups = new Dictionary<int, HashSet<int>>();
-	public Collider2D Bound { get; private set; }
+	public BoxCollider2D Bound { get; private set; }
 
 	public float CurrentFPS { get; private set; }
 
@@ -102,14 +102,14 @@ public class Game : MonoBehaviour
 		LuaDLL.lua_rawseti(l, -2, 1);  // t(class) ... ot t(object)  设置class
 		LuaDLL.lua_pushinteger(l, lstgObj.Id);  // t(class) ... ot t(object) id
 		LuaDLL.lua_rawseti(l, -2, 2);  // t(class) ... ot t(object)  设置id
-		LuaDLL.lua_getfield(l, -2, "mt");  // t(class) ... ot t(object) mt
+		LuaDLL.lua_getfield(l, -2, LSTGObject.ObjMetadataTableName);  // t(class) ... ot t(object) mt
 		LuaDLL.lua_setmetatable(l, -2);  // t(class) ... ot t(object)  设置元表
 		LuaDLL.lua_pushvalue(l, -1);  // t(class) ... ot t(object) t(object)
 		LuaDLL.lua_rawseti(l, -3, lstgObj.Id + 1);  // t(class) ... ot t(object)  设置到全局表
 		LuaDLL.lua_insert(l, 1);  // t(object) t(class) ... ot
 		LuaDLL.lua_pop(l, 1);  // t(object) t(class) ...
-		//LuaDLL.lua_rawgeti(l, 2, 1);  // t(object) t(class) ... f(init)
-		LuaDLL.lua_getfield(l, 2, "init");
+		LuaDLL.lua_rawgeti(l, 2, (int) LSTGObject.ObjFuncIndex.Init);  // t(object) t(class) ... f(init)
+		//LuaDLL.lua_getfield(l, 2, "init");
 		LuaDLL.lua_insert(l, 3);  // t(object) t(class) f(init) ...
 		LuaDLL.lua_pushvalue(l, 1);  // t(object) t(class) f(init) ... t(object)
 		LuaDLL.lua_insert(l, 4);  // t(object) t(class) f(init) t(object) ...

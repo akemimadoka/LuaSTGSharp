@@ -9,6 +9,18 @@ using SLua;
 
 public class LSTGObject : MonoBehaviour
 {
+	public enum ObjFuncIndex
+	{
+		Init = 1,
+		Del,
+		Frame,
+		Render,
+		Colli,
+		Kill
+	}
+
+	public const string ObjMetadataTableName = "mt";
+
 	private static readonly Dictionary<string, PropertyInfo> PropertiesMap = new Dictionary<string, PropertyInfo>();
 
 	public static PropertyInfo FindProperty(string key)
@@ -70,10 +82,10 @@ public class LSTGObject : MonoBehaviour
 			float angle;
 			Vector3 axis;
 			transform.rotation.ToAngleAxis(out angle, out axis);
-			//Debug.Assert(axis == Vector3.forward);
+			//Debug.Assert(axis == Vector3.back || axis == Vector3.zero);
 			return angle;
 		}
-		set { transform.rotation = Quaternion.AngleAxis(value, Vector3.forward); }
+		set { transform.rotation = Quaternion.AngleAxis(value % 360, Vector3.back); }
 	}
 
 	[LObjectPropertyAliasAs("omiga")]
@@ -183,7 +195,8 @@ public class LSTGObject : MonoBehaviour
 		}
 	}
 
-	private LuaTable _luaTable;
+	private LuaTable _objTable;
+	private LuaTable _classTable;
 
 	private void UnloadRenderResource()
 	{
@@ -230,42 +243,47 @@ public class LSTGObject : MonoBehaviour
 		}
 	}
 
-	// Use this for initialization
-	public void Start()
+	public LSTGObject()
 	{
 		ObjectStatus = Status.Free;
-		gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
-		LastPosition = transform.position;
-		Delta = Vector2.zero;
+		Bound = true;
+		/*Delta = Vector2.zero;
 		Rotation = 0;
 		Omiga = 0;
 		Velocity = Vector2.zero;
 		Acceleration = Vector2.zero;
 		Layer = 0;
-		Bound = true;
 		Navi = false;
 		Group = 0;
 		Timer = 0;
-		AniTimer = 0;
+		AniTimer = 0;*/
 	}
 
-	public void OnAcquireLuaTable(LuaTable luaTable)
+	// Use this for initialization
+	public void Start()
 	{
-		_luaTable = luaTable;
+		gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
+		LastPosition = transform.position;
+	}
+
+	public void OnAcquireLuaTable(LuaTable objTable)
+	{
+		_objTable = objTable;
+		_classTable = (LuaTable) objTable[1];
 	}
 
 	// Update is called once per frame
 	public void Update()
 	{
-		if (_luaTable == null)
+		if (_objTable == null)
 		{
 			return;
 		}
-
-		var frameFunc = _luaTable["frame"] as LuaFunction;
+		
+		var frameFunc = _classTable[(int) ObjFuncIndex.Frame] as LuaFunction;
 		if (frameFunc != null)
 		{
-			frameFunc.call(_luaTable);
+			frameFunc.call(_objTable);
 		}
 
 		LastPosition = transform.position;
@@ -277,15 +295,15 @@ public class LSTGObject : MonoBehaviour
 		++Timer;
 		++AniTimer;
 
+		var renderFunc = _classTable[(int)ObjFuncIndex.Render] as LuaFunction;
+		if (renderFunc != null)
+		{
+			renderFunc.call(_objTable);
+		}
+
 		if (ObjectStatus != Status.Default && ObjectStatus != Status.Free)
 		{
 			Destroy(gameObject);
-		}
-
-		var renderFunc = _luaTable["render"] as LuaFunction;
-		if (renderFunc != null)
-		{
-			renderFunc.call(_luaTable);
 		}
 	}
 
@@ -319,10 +337,10 @@ public class LSTGObject : MonoBehaviour
 			return;
 		}
 
-		var colliFunc = _luaTable["colli"] as LuaFunction;
+		var colliFunc = _classTable[(int) ObjFuncIndex.Colli] as LuaFunction;
 		if (colliFunc != null)
 		{
-			colliFunc.call(_luaTable, other._luaTable);
+			colliFunc.call(_objTable, other._objTable);
 		}
 	}
 

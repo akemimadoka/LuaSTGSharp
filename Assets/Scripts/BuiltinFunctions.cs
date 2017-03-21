@@ -13,6 +13,8 @@ namespace Assets.Scripts
 {
 	public static class BuiltinFunctions
 	{
+		public static readonly Regex AttrRegex = new Regex(@"^(\w*?)([xy]?)$", RegexOptions.Compiled);
+
 		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		public static int Print(IntPtr l)
 		{
@@ -232,9 +234,8 @@ namespace Assets.Scripts
 			{
 				return LuaDLL.luaL_error(l, "invalid key for 'GetAttr'");
 			}
-
-			var attrRegex = new Regex(@"^(\w*?)([xy]?)$", RegexOptions.Compiled);
-			var match = attrRegex.Match(key);
+			
+			var match = AttrRegex.Match(key);
 			if (!match.Success)
 			{
 				return LuaDLL.luaL_error(l, "key '{0}' is invalid", key);
@@ -301,14 +302,13 @@ namespace Assets.Scripts
 			var obj = Game.GameInstance.GetObject(id);
 
 			string key;
-			LuaObject.checkType(l, -1, out key);
+			LuaObject.checkType(l, -2, out key);
 			if (key == null)
 			{
 				return LuaDLL.luaL_error(l, "invalid key for 'GetAttr'");
 			}
-
-			var attrRegex = new Regex(@"\b(.*)([xy]?)\b", RegexOptions.Compiled);
-			var match = attrRegex.Match(key);
+			
+			var match = AttrRegex.Match(key);
 			if (!match.Success)
 			{
 				return LuaDLL.luaL_error(l, "key '{0}' is invalid", key);
@@ -336,7 +336,7 @@ namespace Assets.Scripts
 					}
 						break;
 					default:
-						prop.SetValue(obj, LuaObject.checkVar(l, -1), null);
+						prop.SetValue(obj, Convert.ChangeType(LuaObject.checkVar(l, -1), prop.PropertyType), null);
 						break;
 				}
 			}
@@ -384,9 +384,31 @@ namespace Assets.Scripts
 					}
 						break;
 					default:
-						return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
+						Debug.LogWarning(string.Format("key '{0}' does not exist", key));
+						LuaDLL.lua_pushnil(l);
+						break;
 				}
 			}
+
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int SetBound(IntPtr l)
+		{
+			float left, right, bottom, top;
+
+			if (!LuaObject.checkType(l, 1, out left) ||
+				!LuaObject.checkType(l, 2, out right) ||
+				!LuaObject.checkType(l, 3, out bottom) ||
+				!LuaObject.checkType(l, 4, out top))
+			{
+				return LuaDLL.luaL_error(l, "invalid argument for 'SetBound'");
+			}
+
+			var bound = Game.GameInstance.Bound;
+			bound.offset = new Vector2((left + right) / 2.0f, (bottom + top) / 2.0f);
+			bound.size = new Vector2(right - left, top - bottom);
 
 			return 0;
 		}

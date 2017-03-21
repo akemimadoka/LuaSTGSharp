@@ -69,6 +69,12 @@ object={0,0,0,0,0,0;
 
 Timer = 0
 
+Foo=Class(object)
+
+function Foo:frame()
+	lstg.Print(self.rot);
+end
+
 function FrameFunc()
 	Timer = Timer + 1
 	if Timer % 60 == 0 then
@@ -92,12 +98,24 @@ end
 function GameInit()
 	lstg.Print("GameInit");
 	lstg.LoadTexture("undefinedTex", "undefined.png");
-	lstg.LoadImage("undefined", "undefinedTex", 0, 0, 1, 1)
-	local obj = lstg.New(object);
+	lstg.LoadImage("undefined", "undefinedTex", 0, 0, 128, 128)
+	lstg.SetBound(-10, 10, -10, 10);
+	local obj = lstg.New(Foo);
 	lstg.Print(obj.x, obj.img == nil);
 	obj.img = "undefined";
+	obj.vx = 0.05;
+	obj.omiga = 1;
 end
 
 function GameExit()
 	lstg.Print("GameExit");
+end
+
+for _,v in pairs(all_class) do
+	v[1]=v.init
+	v[2]=v.del
+	v[3]=v.frame
+	v[4]=v.render
+	v[5]=v.colli
+	v[6]=v.kill
 end

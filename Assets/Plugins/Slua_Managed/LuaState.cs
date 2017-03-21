@@ -986,7 +986,7 @@ end
 		internal object getObject(string key)
 		{
 			LuaDLL.lua_pushglobaltable(L);
-			object o = getObject(key.Split(new char[] { '.' }));
+			object o = getObject(key.Split('.'));
 			LuaDLL.lua_pop(L, 1);
 			return o;
 		}
@@ -994,18 +994,18 @@ end
 		internal void setObject(string key, object v)
 		{
 			LuaDLL.lua_pushglobaltable(L);
-			setObject(key.Split(new char[] { '.' }), v);
+			setObject(key.Split('.'), v);
 			LuaDLL.lua_pop(L, 1);
 		}
 
 		internal object getObject(string[] remainingPath)
 		{
 			object returnValue = null;
-			for (int i = 0; i < remainingPath.Length; i++)
+			foreach (var t in remainingPath)
 			{
-				LuaDLL.lua_pushstring(L, remainingPath[i]);
+				LuaDLL.lua_pushstring(L, t);
 				LuaDLL.lua_gettable(L, -2);
-				returnValue = this.getObject(L, -1);
+				returnValue = getObject(L, -1);
 				LuaDLL.lua_remove(L, -2);
 				if (returnValue == null) break;
 			}
