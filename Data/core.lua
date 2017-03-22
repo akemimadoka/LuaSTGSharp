@@ -72,13 +72,14 @@ Timer = 0
 Foo=Class(object)
 
 function Foo:frame()
-	lstg.Print(self.rot);
+	lstg.Print(self.rot, self.dx, self.dy);
+	if self.timer >= 100 then self.freezed = true end
 end
 
 function FrameFunc()
 	Timer = Timer + 1
 	if Timer % 60 == 0 then
-		lstg.Print("FrameFunc:", lstg.GetFPS())
+		lstg.Print("FrameFunc:", lstg.GetFPS());
 	end
 	return false
 end
@@ -99,7 +100,7 @@ function GameInit()
 	lstg.Print("GameInit");
 	lstg.LoadTexture("undefinedTex", "undefined.png");
 	lstg.LoadImage("undefined", "undefinedTex", 0, 0, 128, 128)
-	lstg.SetBound(-10, 10, -10, 10);
+	lstg.SetBound(-5, 5, -5, 5);
 	local obj = lstg.New(Foo);
 	lstg.Print(obj.x, obj.img == nil);
 	obj.img = "undefined";

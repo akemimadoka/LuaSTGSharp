@@ -143,6 +143,35 @@ namespace Assets.Scripts
 		}
 
 		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int RegisterCollisionGroup(IntPtr l)
+		{
+			Game.GameInstance.RegisterCollisionGroup(LuaDLL.luaL_checkinteger(l, 1), LuaDLL.luaL_checkinteger(l, 2));
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int UnregisterCollisionGroup(IntPtr l)
+		{
+			Game.GameInstance.UnregisterCollisionGroup(LuaDLL.luaL_checkinteger(l, 1), LuaDLL.luaL_checkinteger(l, 2));
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int UnregisterAllCollisionGroup(IntPtr l)
+		{
+			Game.GameInstance.UnregisterAllCollisionGroup(LuaDLL.luaL_checkinteger(l, 1));
+			return 0;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		public static int ShouldCollideWith(IntPtr l)
+		{
+			LuaDLL.lua_pushboolean(l,
+				Game.GameInstance.ShouldCollideWith(LuaDLL.luaL_checkinteger(l, 1), LuaDLL.luaL_checkinteger(l, 2)));
+			return 1;
+		}
+
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		public static int LoadTexture(IntPtr l)
 		{
 			string name, path;
@@ -187,6 +216,7 @@ namespace Assets.Scripts
 			{
 				return LuaDLL.luaL_error(l, "texture '{0}' has not loaded", textureName);
 			}
+
 			var sprite = Sprite.Create(activedPool.GetResourceAs<ResTexture>(textureName).GetTexture(), new Rect(
 				(float) LuaDLL.luaL_checknumber(l, 3),
 				(float) LuaDLL.luaL_checknumber(l, 4),
@@ -245,48 +275,61 @@ namespace Assets.Scripts
 			
 			var noAliasProperty = false;
 			var prop = LSTGObject.FindProperty(propName);
-			if (prop != null)
+
+			try
 			{
-				var value = prop.GetValue(obj, null);
-				switch (optDimension)
+				if (prop != null)
 				{
-					case "x":
-						LuaObject.pushValue(l, ((Vector2) value).x);
-						break;
-					case "y":
-						LuaObject.pushValue(l, ((Vector2) value).y);
-						break;
-					case "":
-						LuaObject.pushValue(l, value);
-						break;
-					default:
-						noAliasProperty = true;
-						break;
+					var value = prop.GetValue(obj, null);
+					switch (optDimension)
+					{
+						case "x":
+							LuaObject.pushValue(l, ((Vector2)value).x);
+							break;
+						case "y":
+							LuaObject.pushValue(l, ((Vector2)value).y);
+							break;
+						case "":
+							LuaObject.pushValue(l, value);
+							break;
+						default:
+							noAliasProperty = true;
+							break;
+					}
+				}
+
+				if (prop == null || noAliasProperty)
+				{
+					switch (key)
+					{
+						case "a":
+							LuaObject.pushValue(l, obj.Ab.x);
+							break;
+						case "b":
+							LuaObject.pushValue(l, obj.Ab.y);
+							break;
+						case "hscale":
+							LuaObject.pushValue(l, obj.Scale.x);
+							break;
+						case "vscale":
+							LuaObject.pushValue(l, obj.Scale.y);
+							break;
+						case "class":
+							LuaDLL.lua_rawgeti(l, 1, 1);
+							break;
+						case "img":
+							LuaObject.pushValue(l, obj.RenderResource == null ? null : obj.RenderResource.GetName());
+							break;
+						default:
+							Debug.LogWarning(string.Format("key '{0}' does not exist", key));
+							LuaDLL.lua_pushnil(l);
+							break;
+					}
 				}
 			}
-
-			if (prop == null || noAliasProperty)
+			catch (Exception e)
 			{
-				switch (key)
-				{
-					case "a":
-						LuaObject.pushValue(l, obj.Ab.x);
-						break;
-					case "b":
-						LuaObject.pushValue(l, obj.Ab.y);
-						break;
-					case "hscale":
-						LuaObject.pushValue(l, obj.Scale.x);
-						break;
-					case "vscale":
-						LuaObject.pushValue(l, obj.Scale.y);
-						break;
-					case "img":
-						LuaObject.pushValue(l, obj.RenderResource == null ? null : obj.RenderResource.GetName());
-						break;
-					default:
-						return LuaDLL.luaL_error(l, "key '{0}' does not exist", key);
-				}
+				return LuaDLL.luaL_error(l, "some error occured while trying to get key '{0}', exception is {1}", key, e);
 			}
 
 			return 1;
@@ -315,81 +358,100 @@ namespace Assets.Scripts
 			}
 			var propName = match.Groups[1].Value;
 
+			var noAliasProperty = false;
 			var prop = LSTGObject.FindProperty(propName);
-			if (prop != null)
+			try
 			{
-				var value = prop.GetValue(obj, null);
-				switch (match.Groups[2].Value)
+				if (prop != null)
 				{
-					case "x":
+					var setter = prop.GetSetMethod();
+					if (setter == null)
 					{
-						var vec = (Vector2) value;
-						vec.x = (float) LuaDLL.luaL_checknumber(l, -1);
-						prop.SetValue(obj, vec, null);
+						return LuaDLL.luaL_error(l, "key '{0}' is readonly", key);
 					}
-						break;
-					case "y":
+					var value = prop.GetValue(obj, null);
+					switch (match.Groups[2].Value)
 					{
-						var vec = (Vector2) value;
-						vec.y = (float) LuaDLL.luaL_checknumber(l, -1);
-						prop.SetValue(obj, vec, null);
+						case "x":
+							{
+								var vec = (Vector2)value;
+								vec.x = (float)LuaDLL.luaL_checknumber(l, -1);
+								prop.SetValue(obj, vec, null);
+							}
+							break;
+						case "y":
+							{
+								var vec = (Vector2)value;
+								vec.y = (float)LuaDLL.luaL_checknumber(l, -1);
+								prop.SetValue(obj, vec, null);
+							}
+							break;
+						case "":
+							prop.SetValue(obj, Convert.ChangeType(LuaObject.checkVar(l, -1), prop.PropertyType), null);
+							break;
+						default:
+							noAliasProperty = true;
+							break;
 					}
-						break;
-					default:
-						prop.SetValue(obj, Convert.ChangeType(LuaObject.checkVar(l, -1), prop.PropertyType), null);
-						break;
 				}
-			}
-			else
-			{
-				switch (key)
-				{
-					case "a":
-					{
-						var ab = obj.Ab;
-						ab.x = (float) LuaDLL.luaL_checknumber(l, -1);
-						obj.Ab = ab;
-					}
-						break;
-					case "b":
-					{
-						var ab = obj.Ab;
-						ab.y = (float) LuaDLL.luaL_checknumber(l, -1);
-						obj.Ab = ab;
-					}
-						break;
-					case "hscale":
-					{
-						var scale = obj.Scale;
-						scale.x = (float) LuaDLL.luaL_checknumber(l, -1);
-						obj.Scale = scale;
-					}
-						break;
-					case "vscale":
-					{
-						var scale = obj.Scale;
-						scale.y = (float) LuaDLL.luaL_checknumber(l, -1);
-						obj.Scale = scale;
-					}
-						break;
-					case "img":
-					{
-						string resName;
-						LuaObject.checkType(l, -1, out resName);
-						if (string.IsNullOrEmpty(resName))
-						{
-							return LuaDLL.luaL_error(l, "invalid img");
-						}
-						obj.RenderResource = Game.GameInstance.ResourceManager.FindResource(resName);
-					}
-						break;
-					default:
-						Debug.LogWarning(string.Format("key '{0}' does not exist", key));
-						LuaDLL.lua_pushnil(l);
-						break;
-				}
-			}
 
+				if (prop == null || noAliasProperty)
+				{
+					switch (key)
+					{
+						case "a":
+							{
+								var ab = obj.Ab;
+								ab.x = (float)LuaDLL.luaL_checknumber(l, -1);
+								obj.Ab = ab;
+							}
+							break;
+						case "b":
+							{
+								var ab = obj.Ab;
+								ab.y = (float)LuaDLL.luaL_checknumber(l, -1);
+								obj.Ab = ab;
+							}
+							break;
+						case "hscale":
+							{
+								var scale = obj.Scale;
+								scale.x = (float)LuaDLL.luaL_checknumber(l, -1);
+								obj.Scale = scale;
+							}
+							break;
+						case "vscale":
+							{
+								var scale = obj.Scale;
+								scale.y = (float)LuaDLL.luaL_checknumber(l, -1);
+								obj.Scale = scale;
+							}
+							break;
+						case "class":
+							LuaDLL.lua_rawseti(l, 1, 1);
+							break;
+						case "img":
+							{
+								string resName;
+								LuaObject.checkType(l, -1, out resName);
+								if (string.IsNullOrEmpty(resName))
+								{
+									return LuaDLL.luaL_error(l, "invalid img");
+								}
+								obj.RenderResource = Game.GameInstance.ResourceManager.FindResource(resName);
+							}
+							break;
+						default:
+							Debug.LogWarning(string.Format("key '{0}' does not exist", key));
+							break;
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				return LuaDLL.luaL_error(l, "some error occured while trying to set key '{0}', exception is {1}", key, e);
+			}
+			
 			return 0;
 		}
 
@@ -459,7 +521,7 @@ namespace Assets.Scripts
 			LuaDLL.lua_setfield(l, -3, "__index");
 			LuaDLL.lua_pop(l, 1);
 
-			LuaDLL.lua_setfield(l, -2, "mt");
+			LuaDLL.lua_setfield(l, -2, LSTGObject.ObjMetadataTableName);
 			LuaDLL.lua_settable(l, LuaIndexes.LUA_REGISTRYINDEX);
 		}
 	}

@@ -46,6 +46,7 @@ public class Game : MonoBehaviour
 		: ILogHandler, IDisposable
 	{
 		private readonly TextWriter _writer;
+		private bool _disposed;
 
 		public GameLogHandler(string logFilePath)
 		{
@@ -54,6 +55,11 @@ public class Game : MonoBehaviour
 
 		public void LogFormat(LogType logType, Object context, string format, params object[] args)
 		{
+			if (_disposed)
+			{
+				return;
+			}
+
 			var logContent = string.Format("[{0:yy/MM/dd H:mm:ss}][{1}] ({2}) {3}", DateTime.Now, logType, context == null || !context ? "No context" : context.ToString(), string.Format(format, args));
 			_writer.WriteLine(logContent);
 			Debug.Log(logContent);
@@ -63,10 +69,16 @@ public class Game : MonoBehaviour
 		{
 			LogFormat(LogType.Exception, context, "Exception logged: {0}", exception);
 		}
-
+		
 		public void Dispose()
 		{
+			if (_disposed)
+			{
+				return;
+			}
+
 			_writer.Dispose();
+			_disposed = true;
 		}
 	}
 
@@ -109,7 +121,6 @@ public class Game : MonoBehaviour
 		LuaDLL.lua_insert(l, 1);  // t(object) t(class) ... ot
 		LuaDLL.lua_pop(l, 1);  // t(object) t(class) ...
 		LuaDLL.lua_rawgeti(l, 2, (int) LSTGObject.ObjFuncIndex.Init);  // t(object) t(class) ... f(init)
-		//LuaDLL.lua_getfield(l, 2, "init");
 		LuaDLL.lua_insert(l, 3);  // t(object) t(class) f(init) ...
 		LuaDLL.lua_pushvalue(l, 1);  // t(object) t(class) f(init) ... t(object)
 		LuaDLL.lua_insert(l, 4);  // t(object) t(class) f(init) t(object) ...
@@ -162,7 +173,7 @@ public class Game : MonoBehaviour
 		return _collisionGroups.TryGetValue(group, out collision) && collision.Contains(groupToCollide);
 	}
 
-	private void Awake()
+	public void Awake()
 	{
 		switch (Application.platform)
 		{
@@ -181,10 +192,11 @@ public class Game : MonoBehaviour
 	}
 
 	// Use this for initialization
-	void Start()
+	public void Start()
 	{
 		Debug.Assert(CurrentStatus == Status.NotInitialized);
 		Debug.Assert(GameInstance == null);
+		DontDestroyOnLoad(gameObject);
 		GameInstance = this;
 		CurrentStatus = Status.Initializing;
 		GameLogger = new Logger(new GameLogHandler(LogFilePath));
@@ -257,9 +269,9 @@ public class Game : MonoBehaviour
 			CurrentStatus = Status.Initialized;
 		});
 	}
-	
+
 	// Update is called once per frame
-	void Update()
+	public void Update()
 	{
 		switch (CurrentStatus)
 		{
@@ -292,12 +304,26 @@ public class Game : MonoBehaviour
 		}
 	}
 
-	private void OnApplicationQuit()
+	public void OnApplicationQuit()
 	{
+		if (_gameExitFunc != null)
+		{
+			_gameExitFunc.call();
+		}
 
+		if (GameLogger == null)
+		{
+			return;
+		}
+
+		var handler = GameLogger.logHandler as GameLogHandler;
+		if (handler != null)
+		{
+			handler.Dispose();
+		}
 	}
 
-	private void OnApplicationFocus(bool focus)
+	public void OnApplicationFocus(bool focus)
 	{
 		// 可能在初始化完成之前被调用，因此我们必须检查状态
 		switch (CurrentStatus)
@@ -319,7 +345,7 @@ public class Game : MonoBehaviour
 		}
 	}
 
-	private void OnTriggerExit2D(Collider2D collision)
+	public void OnTriggerExit2D(Collider2D collision)
 	{
 		if (collision.gameObject.tag == "")
 		{

@@ -7,6 +7,12 @@ using System.Text.RegularExpressions;
 using Assets.Scripts;
 using SLua;
 
+/// <summary>
+/// LuaSTGSharp 游戏对象
+/// </summary>
+/// <remarks>
+/// 属性可能存在别名，别名不得与已经存在的其他属性及其别名冲突
+/// </remarks>
 public class LSTGObject : MonoBehaviour
 {
 	public enum ObjFuncIndex
@@ -94,8 +100,56 @@ public class LSTGObject : MonoBehaviour
 	public Vector2 Velocity { get; set; }
 	[LObjectPropertyAliasAs("a")]
 	public Vector2 Acceleration { get; set; }
+
 	[LObjectPropertyAliasAs("layer")]
-	public float Layer { get; set; }
+	public int Layer
+	{
+		get
+		{
+			var spriteRenderer = GetComponent<SpriteRenderer>();
+			if (spriteRenderer == null || !spriteRenderer)
+			{
+				return 0;
+			}
+
+			return spriteRenderer.sortingLayerID;
+		}
+		set
+		{
+			var spriteRenderer = GetComponent<SpriteRenderer>();
+			if (spriteRenderer == null || !spriteRenderer)
+			{
+				return;
+			}
+
+			spriteRenderer.sortingLayerID = value;
+		}
+	}
+
+	[LObjectPropertyAliasAs("order")]
+	public int Order
+	{
+		get
+		{
+			var spriteRenderer = GetComponent<SpriteRenderer>();
+			if (spriteRenderer == null || !spriteRenderer)
+			{
+				return 0;
+			}
+
+			return spriteRenderer.sortingOrder;
+		}
+		set
+		{
+			var spriteRenderer = GetComponent<SpriteRenderer>();
+			if (spriteRenderer == null || !spriteRenderer)
+			{
+				return;
+			}
+
+			spriteRenderer.sortingOrder = value;
+		}
+	}
 
 	private Vector2 _ab;
 	public Vector2 Ab
@@ -167,6 +221,9 @@ public class LSTGObject : MonoBehaviour
 		get { return GetComponent<SpriteRenderer>().enabled; }
 		set { GetComponent<SpriteRenderer>().enabled = value; }
 	}
+
+	[LObjectPropertyAliasAs("freezed")]
+	public bool Freezed { get; set; }
 
 	[LObjectPropertyAliasAs("navi")]
 	public bool Navi { get; set; }
@@ -263,6 +320,8 @@ public class LSTGObject : MonoBehaviour
 	public void Start()
 	{
 		gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
+		var rigidBody = gameObject.AddComponent<Rigidbody2D>();
+		rigidBody.isKinematic = true;
 		LastPosition = transform.position;
 	}
 
@@ -275,7 +334,7 @@ public class LSTGObject : MonoBehaviour
 	// Update is called once per frame
 	public void Update()
 	{
-		if (_objTable == null)
+		if (_objTable == null || Freezed)
 		{
 			return;
 		}
@@ -291,11 +350,13 @@ public class LSTGObject : MonoBehaviour
 		CurrentPosition += Velocity;
 		Rotation += Omiga;
 
+		Delta = CurrentPosition - LastPosition;
+
 		// AfterFrame?
 		++Timer;
 		++AniTimer;
 
-		var renderFunc = _classTable[(int)ObjFuncIndex.Render] as LuaFunction;
+		var renderFunc = _classTable[(int) ObjFuncIndex.Render] as LuaFunction;
 		if (renderFunc != null)
 		{
 			renderFunc.call(_objTable);
@@ -322,11 +383,21 @@ public class LSTGObject : MonoBehaviour
 	public void KillSelf()
 	{
 		ObjectStatus = Status.Kill;
+		var killFunc = _classTable[(int) ObjFuncIndex.Kill] as LuaFunction;
+		if (killFunc != null)
+		{
+			killFunc.call(_objTable);
+		}
 	}
 
 	public void DelSelf()
 	{
 		ObjectStatus = Status.Del;
+		var delFunc = _classTable[(int) ObjFuncIndex.Del] as LuaFunction;
+		if (delFunc != null)
+		{
+			delFunc.call(_objTable);
+		}
 	}
 
 	public void OnTriggerEnter2D(Collider2D collision)
