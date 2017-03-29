@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Assets.Scripts;
 using SLua;
 
 /// <summary>
@@ -159,14 +158,14 @@ public class LSTGObject : MonoBehaviour
 		{
 			_ab = value;
 			var currentCollider = Collider;
-			var boxCollider2D = currentCollider as BoxCollider2D;
+			var boxCollider2D = currentCollider as BoxCollider;
 			if (boxCollider2D != null)
 			{
 				boxCollider2D.size = _ab;
 			}
 			else
 			{
-				var circleCollider2D = (CircleCollider2D) currentCollider;
+				var circleCollider2D = (SphereCollider) currentCollider;
 				circleCollider2D.radius = (_ab.x + _ab.y) / 2;
 			}
 		}
@@ -178,9 +177,9 @@ public class LSTGObject : MonoBehaviour
 		set { transform.localScale = value; }
 	}
 
-	public Collider2D Collider
+	public Collider Collider
 	{
-		get { return GetComponent<Collider2D>(); }
+		get { return GetComponent<Collider>(); }
 	}
 
 	[LObjectPropertyAliasAs("colli")]
@@ -193,20 +192,20 @@ public class LSTGObject : MonoBehaviour
 	[LObjectPropertyAliasAs("rect")]
 	public bool Rect
 	{
-		get { return Collider is BoxCollider2D; }
+		get { return Collider is BoxCollider; }
 		set
 		{
 			var currentCollider = Collider;
-			var boxCollider2D = currentCollider as BoxCollider2D;
+			var boxCollider2D = currentCollider as BoxCollider;
 			if (boxCollider2D == null && value)
 			{
 				Destroy(currentCollider);
-				gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
+				gameObject.AddComponent<BoxCollider>().isTrigger = true;
 			}
 			else if (boxCollider2D != null && !value)
 			{
 				Destroy(boxCollider2D);
-				gameObject.AddComponent<CircleCollider2D>().isTrigger = true;
+				gameObject.AddComponent<SphereCollider>().isTrigger = true;
 			}
 			Ab = _ab;
 		}
@@ -228,8 +227,18 @@ public class LSTGObject : MonoBehaviour
 	[LObjectPropertyAliasAs("navi")]
 	public bool Navi { get; set; }
 
+	private int _group;
 	[LObjectPropertyAliasAs("group")]
-	public int Group { get; set; }
+	public int Group {
+		get
+		{
+			return _group;
+		}
+		set
+		{
+			gameObject.layer = _group = value;
+		}
+	}
 	[LObjectPropertyAliasAs("timer")]
 	public int Timer { get; private set; }
 	[LObjectPropertyAliasAs("ani_timer")]
@@ -319,8 +328,9 @@ public class LSTGObject : MonoBehaviour
 	// Use this for initialization
 	public void Start()
 	{
-		gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
-		var rigidBody = gameObject.AddComponent<Rigidbody2D>();
+		gameObject.AddComponent<BoxCollider>().isTrigger = true;
+		//gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
+		var rigidBody = gameObject.AddComponent<Rigidbody>();
 		rigidBody.isKinematic = true;
 		LastPosition = transform.position;
 	}
@@ -400,10 +410,26 @@ public class LSTGObject : MonoBehaviour
 		}
 	}
 
-	public void OnTriggerEnter2D(Collider2D collision)
+	public void GetV(out float v, out float a)
+	{
+		v = Velocity.magnitude;
+		a = Mathf.Atan2(Velocity.y, Velocity.x) * Mathf.Rad2Deg;
+	}
+
+	public void SetV(float v, float a, bool updateRot)
+	{
+		a *= Mathf.Deg2Rad;
+		Velocity = new Vector2(v * Mathf.Cos(a), v * Mathf.Sin(a));
+		if (updateRot)
+		{
+			Rotation = a;
+		}
+	}
+
+	public void OnTriggerEnter(Collider collision)
 	{
 		var other = collision.gameObject.GetComponent<LSTGObject>();
-		if (other == null || !other || !Game.GameInstance.ShouldCollideWith(Group, other.Group))
+		if (other == null || !other)
 		{
 			return;
 		}
@@ -415,7 +441,7 @@ public class LSTGObject : MonoBehaviour
 		}
 	}
 
-	public void OnTriggerExit2D(Collider2D collision)
+	public void OnTriggerExit(Collider collision)
 	{
 		if (collision == Game.GameInstance.Bound && Bound)
 		{

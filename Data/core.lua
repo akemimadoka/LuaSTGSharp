@@ -1,12 +1,10 @@
-GROUP_GHOST=0
-GROUP_ENEMY_BULLET=1
-GROUP_ENEMY=2
-GROUP_PLAYER_BULLET=3
-GROUP_PLAYER=4
-GROUP_INDES=5
-GROUP_ITEM=6
-GROUP_NONTJT = 7
-GROUP_ALL=16
+GROUP_GHOST=lstg.GetCollisionLayerId("Default");
+GROUP_ENEMY_BULLET=lstg.GetCollisionLayerId("Bullet");
+GROUP_ENEMY=lstg.GetCollisionLayerId("Enemy");
+GROUP_PLAYER_BULLET=lstg.GetCollisionLayerId("PlayerBullet");
+GROUP_PLAYER=lstg.GetCollisionLayerId("Player");
+GROUP_ITEM=lstg.GetCollisionLayerId("Item");
+--GROUP_ALL=16
 GROUP_NUM_OF_GROUP=16
 
 LAYER_BG=-700
@@ -72,14 +70,24 @@ Timer = 0
 Foo=Class(object)
 
 function Foo:frame()
-	lstg.Print(self.rot, self.dx, self.dy);
-	if self.timer >= 100 then self.freezed = true end
+	self.x = 5 * lstg.cos(self.timer);
+	self.y = 5 * lstg.sin(self.timer);
+end
+
+function Foo:colli()
+	lstg.Kill(self);
 end
 
 function FrameFunc()
 	Timer = Timer + 1
-	if Timer % 60 == 0 then
-		lstg.Print("FrameFunc:", lstg.GetFPS());
+	if Timer <= 200 then
+		--lstg.Print("FrameFunc:", lstg.GetFPS());
+		local obj = lstg.New(Foo);
+		obj.img = "undefined";
+		obj.group = GROUP_ENEMY_BULLET;
+		obj.x = 5;
+		obj.omiga = 1;
+		--obj.vx = 1;
 	end
 	return false
 end
@@ -101,11 +109,6 @@ function GameInit()
 	lstg.LoadTexture("undefinedTex", "undefined.png");
 	lstg.LoadImage("undefined", "undefinedTex", 0, 0, 128, 128)
 	lstg.SetBound(-5, 5, -5, 5);
-	local obj = lstg.New(Foo);
-	lstg.Print(obj.x, obj.img == nil);
-	obj.img = "undefined";
-	obj.vx = 0.05;
-	obj.omiga = 1;
 end
 
 function GameExit()

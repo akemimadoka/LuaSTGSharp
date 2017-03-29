@@ -24,6 +24,8 @@
 // init will not use reflection to speed up the speed
 //#define USE_STATIC_BINDER  
 
+using System.Linq;
+
 namespace SLua
 {
 	using System;
@@ -37,11 +39,12 @@ namespace SLua
 	#endif
 
 	[Flags]
-	public enum LuaSvrFlag {
+	public enum LuaSvrFlag
+	{
 		LSF_BASIC = 0,
 		LSF_EXTLIB = 1,
 		LSF_3RDDLL = 2
-	};
+	}
 
 	public class LuaSvr 
 	{
@@ -79,27 +82,19 @@ namespace SLua
 				{
 					continue;
 				}
-				for (int k = 0; k < ts.Length; k++)
-				{
-					Type t = ts[k];
-					if (t.IsDefined(typeof(LuaBinderAttribute), false))
-					{
-						bindlist.Add(t);
-					}
-				}
+				bindlist.AddRange(ts.Where(t => t.IsDefined(typeof(LuaBinderAttribute), false)));
 			}
 
-			bindlist.Sort(new System.Comparison<Type>((Type a, Type b) => {
-				LuaBinderAttribute la = System.Attribute.GetCustomAttribute( a, typeof(LuaBinderAttribute) ) as LuaBinderAttribute;
-				LuaBinderAttribute lb = System.Attribute.GetCustomAttribute( b, typeof(LuaBinderAttribute) ) as LuaBinderAttribute;
+			bindlist.Sort((a, b) => {
+				LuaBinderAttribute la = Attribute.GetCustomAttribute( a, typeof(LuaBinderAttribute) ) as LuaBinderAttribute;
+				LuaBinderAttribute lb = Attribute.GetCustomAttribute( b, typeof(LuaBinderAttribute) ) as LuaBinderAttribute;
 
 				return la.order.CompareTo(lb.order);
-			}));
+			});
 
-			for (int n = 0; n < bindlist.Count; n++)
+			foreach (var t in bindlist)
 			{
-				Type t = bindlist[n];
-				var sublist = (Action<IntPtr>[])t.GetMethod("GetBindList").Invoke(null, null);
+				var sublist = (IEnumerable<Action<IntPtr>>)t.GetMethod("GetBindList").Invoke(null, null);
 				list.AddRange(sublist);
 			}
 			#else

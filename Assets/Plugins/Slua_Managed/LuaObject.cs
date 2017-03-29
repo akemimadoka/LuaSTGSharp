@@ -697,13 +697,13 @@ return index
 		}
 
 
-		public static void reg(IntPtr l, LuaCSFunction func, string ns = null)
+		public static void reg(IntPtr l, LuaCSFunction func, string ns = null, string alias = null)
 		{
             checkMethodValid(func);
 
             newTypeTable(l, ns);
 			pushValue(l, func);
-			LuaDLL.lua_setfield(l, -2, func.Method.Name);
+			LuaDLL.lua_setfield(l, -2, alias ?? func.Method.Name);
 			LuaDLL.lua_pop(l, 1);
 		}
 

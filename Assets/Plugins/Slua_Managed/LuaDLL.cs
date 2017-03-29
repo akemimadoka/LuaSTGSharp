@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace SLua
 {
 #pragma warning disable 414
-    public class MonoPInvokeCallbackAttribute : System.Attribute
+    public class MonoPInvokeCallbackAttribute : Attribute
     {
         private Type type;
         public MonoPInvokeCallbackAttribute(Type t)
@@ -14,7 +14,7 @@ namespace SLua
     }
 #pragma warning restore 414
 
-    public enum LuaTypes : int
+    public enum LuaTypes
     {
         LUA_TNONE = -1,
         LUA_TNIL = 0,
@@ -25,7 +25,7 @@ namespace SLua
         LUA_TTABLE = 5,
         LUA_TFUNCTION = 6,
         LUA_TUSERDATA = 7,
-        LUA_TTHREAD = 8,
+        LUA_TTHREAD = 8
     }
 
     public enum LuaGCOptions
@@ -37,16 +37,16 @@ namespace SLua
         LUA_GCCOUNTB = 4,
         LUA_GCSTEP = 5,
         LUA_GCSETPAUSE = 6,
-        LUA_GCSETSTEPMUL = 7,
+        LUA_GCSETSTEPMUL = 7
     }
 
-    public enum LuaThreadStatus : int
+    public enum LuaThreadStatus
     {
         LUA_YIELD = 1,
         LUA_ERRRUN = 2,
         LUA_ERRSYNTAX = 3,
         LUA_ERRMEM = 4,
-        LUA_ERRERR = 5,
+        LUA_ERRERR = 5
     }
 
     public sealed class LuaIndexes
@@ -64,7 +64,7 @@ namespace SLua
     [StructLayout(LayoutKind.Sequential)]
     public struct ReaderInfo
     {
-        public String chunkData;
+        public string chunkData;
         public bool finished;
     }
 
@@ -117,7 +117,7 @@ namespace SLua
         }
         public static string luaL_typename(IntPtr luaState, int stackPos)
         {
-            return LuaDLL.lua_typenamestr(luaState, LuaDLL.lua_type(luaState, stackPos));
+            return lua_typenamestr(luaState, lua_type(luaState, stackPos));
         }
 
         public static bool lua_isfunction(IntPtr luaState, int stackPos)
@@ -184,22 +184,22 @@ namespace SLua
         public static extern int luaL_loadstring(IntPtr luaState, string chunk);
         public static int luaL_dostring(IntPtr luaState, string chunk)
         {
-            int result = LuaDLL.luaL_loadstring(luaState, chunk);
+            int result = luaL_loadstring(luaState, chunk);
             if (result != 0)
                 return result;
 
-            return LuaDLL.lua_pcall(luaState, 0, -1, 0);
+            return lua_pcall(luaState, 0, -1, 0);
         }
         public static int lua_dostring(IntPtr luaState, string chunk)
         {
-            return LuaDLL.luaL_dostring(luaState, chunk);
+            return luaL_dostring(luaState, chunk);
         }
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void lua_createtable(IntPtr luaState, int narr, int nrec);
         public static void lua_newtable(IntPtr luaState)
         {
-            LuaDLL.lua_createtable(luaState, 0, 0);
+            lua_createtable(luaState, 0, 0);
         }
 
 #if LUA_5_3
@@ -333,20 +333,20 @@ namespace SLua
 
         public static void lua_getglobal(IntPtr luaState, string name)
         {
-            LuaDLL.lua_pushstring(luaState, name);
-            LuaDLL.lua_gettable(luaState, LuaIndexes.LUA_GLOBALSINDEX);
+            lua_pushstring(luaState, name);
+            lua_gettable(luaState, LuaIndexes.LUA_GLOBALSINDEX);
         }
 
         public static void lua_setglobal(IntPtr luaState, string name)
         {
-            LuaDLL.lua_pushstring(luaState, name);
-            LuaDLL.lua_insert(luaState, -2);
-            LuaDLL.lua_settable(luaState, LuaIndexes.LUA_GLOBALSINDEX);
+            lua_pushstring(luaState, name);
+            lua_insert(luaState, -2);
+            lua_settable(luaState, LuaIndexes.LUA_GLOBALSINDEX);
         }
 
         public static void lua_pushglobaltable(IntPtr l)
         {
-            LuaDLL.lua_pushvalue(l, LuaIndexes.LUA_GLOBALSINDEX);
+            lua_pushvalue(l, LuaIndexes.LUA_GLOBALSINDEX);
         }
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
@@ -420,7 +420,7 @@ namespace SLua
         public static extern void lua_settop(IntPtr luaState, int newTop);
         public static void lua_pop(IntPtr luaState, int amount)
         {
-            LuaDLL.lua_settop(luaState, -(amount) - 1);
+            lua_settop(luaState, -(amount) - 1);
         }
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
@@ -453,7 +453,7 @@ namespace SLua
         public static extern LuaTypes lua_type(IntPtr luaState, int index);
         public static bool lua_isnil(IntPtr luaState, int index)
         {
-            return (LuaDLL.lua_type(luaState, index) == LuaTypes.LUA_TNIL);
+            return (lua_type(luaState, index) == LuaTypes.LUA_TNIL);
         }
 
         public static bool lua_isnumber(IntPtr luaState, int index)
@@ -462,7 +462,7 @@ namespace SLua
         }
         public static bool lua_isboolean(IntPtr luaState, int index)
         {
-            return LuaDLL.lua_type(luaState, index) == LuaTypes.LUA_TBOOLEAN;
+            return lua_type(luaState, index) == LuaTypes.LUA_TBOOLEAN;
         }
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern int luaL_ref(IntPtr luaState, int registryIndex);
@@ -470,14 +470,14 @@ namespace SLua
 
         public static void lua_getref(IntPtr luaState, int reference)
         {
-            LuaDLL.lua_rawgeti(luaState, LuaIndexes.LUA_REGISTRYINDEX, reference);
+            lua_rawgeti(luaState, LuaIndexes.LUA_REGISTRYINDEX, reference);
         }
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void luaL_unref(IntPtr luaState, int registryIndex, int reference);
         public static void lua_unref(IntPtr luaState, int reference)
         {
-            LuaDLL.luaL_unref(luaState, LuaIndexes.LUA_REGISTRYINDEX, reference);
+            luaL_unref(luaState, LuaIndexes.LUA_REGISTRYINDEX, reference);
         }
 
         public static bool lua_isstring(IntPtr luaState, int index)
@@ -494,7 +494,7 @@ namespace SLua
 
         public static void luaL_checktype(IntPtr luaState, int p, LuaTypes t)
         {
-            LuaTypes ct = LuaDLL.lua_type(luaState, p);
+            LuaTypes ct = lua_type(luaState, p);
             if (ct != t)
             {
                 throw new Exception(string.Format("arg {0} expect {1}, got {2}", p, lua_typenamestr(luaState, t), lua_typenamestr(luaState, ct)));
@@ -580,7 +580,7 @@ namespace SLua
         public static extern void lua_getfield(IntPtr luaState, int stackPos, string meta);
         public static void luaL_getmetatable(IntPtr luaState, string meta)
         {
-            LuaDLL.lua_getfield(luaState, LuaIndexes.LUA_REGISTRYINDEX, meta);
+            lua_getfield(luaState, LuaIndexes.LUA_REGISTRYINDEX, meta);
         }
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr luaL_checkudata(IntPtr luaState, int stackPos, string meta);
