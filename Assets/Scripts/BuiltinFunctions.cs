@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using SLua;
 using UnityEngine;
+using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 public static class BuiltinFunctions
@@ -257,6 +258,13 @@ public static class BuiltinFunctions
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int GetKeyState(IntPtr l)
+	{
+		LuaObject.pushValue(l, Input.GetKey((KeyCode) LuaDLL.luaL_checkinteger(l, 1)));
+		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int DoFile(IntPtr l)
 	{
 		string path;
@@ -303,6 +311,50 @@ public static class BuiltinFunctions
 		LuaDLL.lua_pushboolean(l,
 			Physics.GetIgnoreLayerCollision(LuaDLL.luaL_checkinteger(l, 1), LuaDLL.luaL_checkinteger(l, 2)));
 		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int CreateUI(IntPtr l)
+	{
+		string name, path;
+		LuaObject.checkType(l, 1, out name);
+		LuaObject.checkType(l, 2, out path);
+
+		if (name == null || path == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'CreateUI'");
+		}
+
+		var json = Game.GameInstance.ResourceManager.FindResourceAs<ResText>(name, path);
+
+		var uiObj = new GameObject(name)
+		{
+			layer = LayerMask.NameToLayer("UI")
+		};
+		var ui = uiObj.AddComponent<JsonUI>();
+		ui.OnAcquireJson(json.GetContent());
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int DestroyUI(IntPtr l)
+	{
+		string name;
+		LuaObject.checkType(l, 1, out name);
+
+		if (name == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'DestroyUI'");
+		}
+
+		var uiObj = GameObject.Find(name);
+		if (uiObj != null && uiObj.GetComponent<JsonUI>() != null)
+		{
+			Object.Destroy(uiObj);
+		}
+
+		return 0;
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
@@ -445,7 +497,7 @@ public static class BuiltinFunctions
 		var activedPool = Game.GameInstance.ResourceManager.GetActivedPool();
 		if (activedPool.ResourceExists(name, typeof(ResAudio)))
 		{
-			return LuaDLL.luaL_error(l, "audio {0} has already loaded.", name);
+			return LuaDLL.luaL_error(l, "audio '{0}' has already loaded.", name);
 		}
 
 		return activedPool.GetResourceAs<ResAudio>(name, path) == null ? LuaDLL.luaL_error(l, "failed to load audio {0} from path {1}.", name, path) : 0;
@@ -467,7 +519,7 @@ public static class BuiltinFunctions
 			return LuaDLL.luaL_error(l, "audio '{0}' does not exist.", name);
 		}
 
-		var audio = Game.GameInstance.ResourceManager.FindResourceAs<ResAudio>(name);
+		var audio = Game.GameInstance.ResourceManager.FindResourceAs<ResAudio>(name, autoLoad: false);
 		if (audio == null)
 		{
 			return LuaDLL.luaL_error(l, "internal error occured while trying to load audio '{0}'.", name);
@@ -491,7 +543,7 @@ public static class BuiltinFunctions
 			return LuaDLL.luaL_error(l, "invalid argument for 'PlayMusic'");
 		}
 		
-		var audio = Game.GameInstance.ResourceManager.FindResourceAs<ResAudio>(name);
+		var audio = Game.GameInstance.ResourceManager.FindResourceAs<ResAudio>(name, autoLoad: false);
 		if (audio == null)
 		{
 			return LuaDLL.luaL_error(l, "cannot load audio '{0}'", name);
@@ -535,7 +587,7 @@ public static class BuiltinFunctions
 			return LuaDLL.luaL_error(l, "invalid argument for 'PlaySound'");
 		}
 
-		var audio = Game.GameInstance.ResourceManager.FindResourceAs<ResAudio>(name);
+		var audio = Game.GameInstance.ResourceManager.FindResourceAs<ResAudio>(name, autoLoad: false);
 		if (audio == null)
 		{
 			return LuaDLL.luaL_error(l, "cannot load audio '{0}'", name);
@@ -581,7 +633,7 @@ public static class BuiltinFunctions
 		{
 			return LuaDLL.luaL_error(l, "invalid key for 'GetAttr'");
 		}
-			
+		
 		var match = AttrRegex.Match(key);
 		if (!match.Success)
 		{
@@ -589,7 +641,7 @@ public static class BuiltinFunctions
 		}
 		var propName = match.Groups[1].Value;
 		var optDimension = match.Groups[2].Value;
-			
+		
 		var noAliasProperty = false;
 		var prop = LSTGObject.FindProperty(propName);
 
@@ -795,15 +847,28 @@ public static class BuiltinFunctions
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int DefaultRenderFunc(IntPtr l)
 	{
-		LuaTable table;
-		LuaObject.checkType(l, 1, out table);
-		var obj = Game.GameInstance.GetObject((int) table[1]);
+		LuaDLL.lua_rawgeti(l, -1, 2);
+		int objIndex;
+		if (!LuaObject.checkType(l, -1, out objIndex))
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'DefaultRenderFunc'");
+		}
+		var obj = Game.GameInstance.GetObject(objIndex);
 		if (obj != null && obj)
 		{
 			obj.DefaultRenderFunc();
 		}
+		LuaDLL.lua_pop(l, 1);
 
 		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	[LuaFunctionAliasAs("GetnObj")]
+	public static int GetObjectCount(IntPtr l)
+	{
+		LuaDLL.lua_pushinteger(l, Game.GameInstance.ObjectCount);
+		return 1;
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]

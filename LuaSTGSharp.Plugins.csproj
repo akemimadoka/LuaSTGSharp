@@ -79,6 +79,9 @@
     <Reference Include="Ionic.Zip">
       <HintPath>Assets\Plugins\Ionic.Zip.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>Assets\Plugins\Newtonsoft.Json.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Plugins\Slua_Managed\Coroutine.cs" />

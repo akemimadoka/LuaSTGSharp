@@ -222,7 +222,12 @@ public class ResAudio
 
 	public override void OnAcquirePath(string path)
 	{
-		_ext = Path.GetExtension(path);
+		var ext = Path.GetExtension(path);
+		if (string.IsNullOrEmpty(ext))
+		{
+			throw new ArgumentException("path is invalid.", "path");
+		}
+		_ext = ext.TrimStart('.');
 	}
 
 	public override void Dispose()
@@ -242,11 +247,13 @@ public class ResAudio
 
 	public override bool InitFromStream(Stream stream)
 	{
-		if (_waveSource != null)
+		if (_waveSource != null || string.IsNullOrEmpty(_ext))
 		{
 			return false;
 		}
 
+		//var memStream = new MemoryStream();
+		//stream.CopyTo(memStream);
 		_waveSource = CodecFactory.Instance.GetCodec(stream, _ext);
 		return _waveSource != null;
 	}
@@ -281,7 +288,9 @@ public class ResAudio
 		if (_audioClip == null)
 		{
 			_decoder = WaveToSampleBase.CreateConverter(_waveSource);
-			_audioClip = AudioClip.Create(GetName(), (int) (_decoder.Length / _decoder.WaveFormat.Channels),
+			_loopBegin = 0;
+			_loopEnd = _decoder.Length / _decoder.WaveFormat.Channels;
+			_audioClip = AudioClip.Create(GetName(), (int) _loopEnd,
 				_decoder.WaveFormat.Channels, _decoder.WaveFormat.SampleRate, true, OnReadAudio, OnSetPosition);
 		}
 
@@ -295,7 +304,7 @@ public class ResAudio
 			throw new ObjectDisposedException("this", "This resource has already disposed.");
 		}
 
-		var remainedLength = _loopEnd - _decoder.Position;
+		var remainedLength = _loopEnd - _decoder.Position / _decoder.WaveFormat.Channels;
 		if (remainedLength < data.Length)
 		{
 			var readLength = remainedLength == 0 ? 0 : _decoder.Read(data, 0, (int) remainedLength);
@@ -304,7 +313,9 @@ public class ResAudio
 		}
 		else
 		{
-			_decoder.Read(data, 0, data.Length);
+			var buffer = new float[data.Length];
+			_decoder.Read(buffer, 0, buffer.Length);
+			buffer.CopyTo(data, 0);
 		}
 	}
 
@@ -519,7 +530,7 @@ public sealed class ResourcePool
 		return null;
 	}
 		
-	public Resource GetResourceAs(string name, Type asResourceType, string path = null)
+	public Resource GetResourceAs(string name, Type asResourceType, string path = null, bool autoLoad = true)
 	{
 		Dictionary<string, Resource> resources;
 		if (!_resourcePool.TryGetValue(asResourceType, out resources))
@@ -535,7 +546,7 @@ public sealed class ResourcePool
 			path = name;
 		}
 
-		if (resource == null)
+		if (resource == null && autoLoad)
 		{
 			var constructor = asResourceType.GetConstructor(new[] { typeof(string) });
 			if (constructor != null)
@@ -549,13 +560,11 @@ public sealed class ResourcePool
 						resourceNeedPath.OnAcquirePath(path);
 					}
 
-					using (var stream = _resourceManager.GetResourceStream(path))
+					var stream = _resourceManager.GetResourceStream(path);
+					if (stream == null || !resource.InitFromStream(stream))
 					{
-						if (stream == null || !resource.InitFromStream(stream))
-						{
-							resource.Dispose();
-							return null;
-						}
+						resource.Dispose();
+						return null;
 					}
 
 					resources.Add(name, resource);
@@ -566,9 +575,9 @@ public sealed class ResourcePool
 		return resource;
 	}
 
-	public T GetResourceAs<T>(string name, string path = null) where T : Resource
+	public T GetResourceAs<T>(string name, string path = null, bool autoLoad = true) where T : Resource
 	{
-		return GetResourceAs(name, typeof(T), path) as T;
+		return GetResourceAs(name, typeof(T), path, autoLoad) as T;
 	}
 
 	public bool AddResource(Resource resource)
@@ -732,23 +741,23 @@ public sealed class ResourceManager
 			.FirstOrDefault(resource => resource != null);
 	}
 
-	public Resource FindResourceAs(string name, Type resourceType, string path = null)
+	public Resource FindResourceAs(string name, Type resourceType, string path = null, bool autoLoad = true)
 	{
 		ThrowIfDisposed();
 		return Enum.GetValues(typeof(ResourcePoolType))
 			.OfType<ResourcePoolType>()
 			.Reverse()
-			.Select(resourcePoolType => _resourcePools[resourcePoolType].GetResourceAs(name, resourceType, path))
+			.Select(resourcePoolType => _resourcePools[resourcePoolType].GetResourceAs(name, resourceType, path, autoLoad))
 			.FirstOrDefault(resource => resource != null);
 	}
 
-	public T FindResourceAs<T>(string name, string path = null) where T : Resource
+	public T FindResourceAs<T>(string name, string path = null, bool autoLoad = true) where T : Resource
 	{
 		ThrowIfDisposed();
 		return Enum.GetValues(typeof(ResourcePoolType))
 			.OfType<ResourcePoolType>()
 			.Reverse()
-			.Select(resourcePoolType => _resourcePools[resourcePoolType].GetResourceAs<T>(name, path))
+			.Select(resourcePoolType => _resourcePools[resourcePoolType].GetResourceAs<T>(name, path, autoLoad))
 			.FirstOrDefault(resource => resource != null);
 	}
 

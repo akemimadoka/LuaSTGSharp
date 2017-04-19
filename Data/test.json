@@ -1,0 +1,45 @@
+{
+	"FPSCounter" : 
+		{
+			"type" : "text",
+			"x" : 0,
+			"y" : 0,
+			"width" : 300,
+			"height" : 20,
+			"caption" : "@'FPS = '..GetFPS()..', Obj = '..GetnObj()"
+		},
+	"testedit" : 
+		{
+			"type" : "edit",
+			"x" : 0,
+			"y" : 25,
+			"width" : 100,
+			"height" : 20,
+			"binding" : "lstg.var.editvalue"
+		},
+	"testimage" :
+		{
+			"type" : "image",
+			"x" : 0,
+			"y" : 50,
+			"width" : 50,
+			"height" : 50,
+			"image" : "undefinedTex"
+		},
+	"testbutton" :
+		{
+			"type" : "button",
+			"x" : 0,
+			"y" : 100,
+			"width" : 200,
+			"height" : 50,
+			"caption" : "Click me!",
+			"action" :
+			"local obj = New(Foo)
+			obj.img = 'undefined';
+			obj.group = GROUP_ENEMY_BULLET;
+			obj.x = 5;
+			obj.omiga = 1;
+			Print(lstg.var.editvalue);"
+		}
+}

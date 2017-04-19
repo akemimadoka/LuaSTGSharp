@@ -8,6 +8,7 @@ using UnityEngine.UI;
 using SLua;
 using Object = UnityEngine.Object;
 
+[RequireComponent(typeof(AudioSource))]
 public class Game : MonoBehaviour
 {
 	public const int MaxObjectCount = 32767;
@@ -49,7 +50,7 @@ public class Game : MonoBehaviour
 	public float GlobalMusicVolume { get; set; }
 	public float GlobalSoundEffectVolume { get; set; }
 
-	public Text FPSCounter;
+	public int ObjectCount { get; set; }
 
 	private class GameLogHandler
 		: ILogHandler, IDisposable
@@ -206,8 +207,6 @@ public class Game : MonoBehaviour
 
 			LuaDLL.lua_gc(l, LuaGCOptions.LUA_GCRESTART, -1);
 
-			ResourceManager.FindResourceAs<ResLuaScript>("launch").Execute(LuaVM.luaState);
-
 			LuaDLL.lua_pushglobaltable(l);
 			LuaTable globalTable;
 			LuaObject.checkType(l, -1, out globalTable);
@@ -217,7 +216,8 @@ public class Game : MonoBehaviour
 			}
 			GlobalTable = globalTable;
 			LuaDLL.lua_pop(l, 1);
-
+			
+			ResourceManager.FindResourceAs<ResLuaScript>("launch").Execute(LuaVM.luaState);
 			ResourceManager.FindResourceAs<ResLuaScript>("core.lua").Execute(LuaVM.luaState);
 			
 			var gameInit = globalTable["GameInit"] as LuaFunction;
@@ -281,7 +281,6 @@ public class Game : MonoBehaviour
 		}
 
 		CurrentFPS = 1.0f / Time.deltaTime;
-		FPSCounter.text = CurrentFPS.ToString(CultureInfo.InvariantCulture);
 
 		// TODO: 完成更新操作，包括对象的更新等
 

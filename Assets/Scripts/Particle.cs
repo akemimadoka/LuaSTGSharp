@@ -49,8 +49,8 @@ public class ResParticle : Resource
 		public float ColorVar;  // 颜色抖动值
 		public float AlphaVar;  // alpha抖动值
 	}
-		
-	private readonly ParticleInfo _particleInfo = new ParticleInfo();
+
+	private ParticleInfo _particleInfo;
 	private bool _loaded;
 	private Material _material;
 	public Vector2 Ab { get; set; }
@@ -68,9 +68,17 @@ public class ResParticle : Resource
 			return false;
 		}
 
-		var gcHandle = GCHandle.Alloc(stream, GCHandleType.Pinned);
-		Marshal.PtrToStructure(gcHandle.AddrOfPinnedObject(), _particleInfo);
-		gcHandle.Free();
+		using (var memStream = new MemoryStream())
+		{
+			stream.CopyTo(memStream);
+
+			var gcHandle = GCHandle.Alloc(memStream.ToArray(), GCHandleType.Pinned);
+			_particleInfo = (ParticleInfo) Marshal.PtrToStructure(gcHandle.AddrOfPinnedObject(), typeof(ParticleInfo));
+			_particleInfo.ParticleLifeMin /= 10;
+			_particleInfo.ParticleLifeMax /= 10;
+			gcHandle.Free();
+		}
+		
 		_loaded = true;
 		return true;
 	}
@@ -98,15 +106,21 @@ public class ResParticle : Resource
 		}
 
 		// TODO: 完成粒子系统的配置
+		particleSystem.Stop();
+
 		var main = particleSystem.main;
 		var emission = particleSystem.emission;
+		var colorOverLifetime = particleSystem.colorOverLifetime;
 		var renderer = particleSystem.GetComponent<Renderer>();
 
 		renderer.material = _material;
 
 		// BlendInfo unknown
 		emission.rateOverTime = _particleInfo.Emission;
-		main.duration = _particleInfo.Lifetime;
+		if (_particleInfo.Lifetime > 0)
+		{
+			main.duration = _particleInfo.Lifetime;
+		}
 		main.startLifetime = new ParticleSystem.MinMaxCurve(_particleInfo.ParticleLifeMin, _particleInfo.ParticleLifeMax);
 		main.startRotation = _particleInfo.Direction;
 		main.randomizeRotationDirection = _particleInfo.Spread;
@@ -116,6 +130,16 @@ public class ResParticle : Resource
 		// RadialAccel unknown
 		// TangentialAccel unknown
 		main.startSize = _particleInfo.SizeStart;
-
+		// Spin unknown
+		main.startColor = new Color(_particleInfo.ColorStart[0], _particleInfo.ColorStart[1], _particleInfo.ColorStart[2],
+					_particleInfo.ColorStart[3]);
+		colorOverLifetime.color = new ParticleSystem.MinMaxGradient(
+				new Color(_particleInfo.ColorStart[0], _particleInfo.ColorStart[1], _particleInfo.ColorStart[2],
+					_particleInfo.ColorStart[3]),
+				new Color(_particleInfo.ColorEnd[0], _particleInfo.ColorEnd[1], _particleInfo.ColorEnd[2],
+					_particleInfo.ColorEnd[3]));
+		// Var unknown
+		
+		particleSystem.Play();
 	}
 }

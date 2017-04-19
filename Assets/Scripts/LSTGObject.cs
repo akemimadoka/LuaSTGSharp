@@ -328,6 +328,7 @@ public class LSTGObject : MonoBehaviour
 	// Use this for initialization
 	public void Start()
 	{
+		++Game.GameInstance.ObjectCount;
 		gameObject.AddComponent<BoxCollider>().isTrigger = true;
 		//gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
 		var rigidBody = gameObject.AddComponent<Rigidbody>();
@@ -371,11 +372,16 @@ public class LSTGObject : MonoBehaviour
 		{
 			renderFunc.call(_objTable);
 		}
-
+		
 		if (ObjectStatus != Status.Default && ObjectStatus != Status.Free)
 		{
 			Destroy(gameObject);
 		}
+	}
+	
+	private void OnDisable()
+	{
+		--Game.GameInstance.ObjectCount;
 	}
 
 	public void DefaultRenderFunc()
