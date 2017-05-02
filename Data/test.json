@@ -6,6 +6,7 @@
 			"y" : 0,
 			"width" : 300,
 			"height" : 20,
+			"color" : "@0xFF00FFFF",
 			"caption" : "@'FPS = '..GetFPS()..', Obj = '..GetnObj()"
 		},
 	"testedit" : 
@@ -16,6 +17,14 @@
 			"width" : 100,
 			"height" : 20,
 			"binding" : "lstg.var.editvalue"
+		},
+	"testedit2":
+		{
+			"type" : "edit",
+			"x" : 120,
+			"y" : 25,
+			"width" : 100,
+			"height" : 20,
 		},
 	"testimage" :
 		{

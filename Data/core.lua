@@ -1,9 +1,9 @@
-GROUP_GHOST=lstg.GetCollisionLayerId("Default");
-GROUP_ENEMY_BULLET=lstg.GetCollisionLayerId("Bullet");
-GROUP_ENEMY=lstg.GetCollisionLayerId("Enemy");
-GROUP_PLAYER_BULLET=lstg.GetCollisionLayerId("PlayerBullet");
-GROUP_PLAYER=lstg.GetCollisionLayerId("Player");
-GROUP_ITEM=lstg.GetCollisionLayerId("Item");
+GROUP_GHOST=GetCollisionLayerId("Default");
+GROUP_ENEMY_BULLET=GetCollisionLayerId("Bullet");
+GROUP_ENEMY=GetCollisionLayerId("Enemy");
+GROUP_PLAYER_BULLET=GetCollisionLayerId("PlayerBullet");
+GROUP_PLAYER=GetCollisionLayerId("Player");
+GROUP_ITEM=GetCollisionLayerId("Item");
 --GROUP_ALL=16
 GROUP_NUM_OF_GROUP=16
 
@@ -277,12 +277,12 @@ end
 --base class of all classes
 object={0,0,0,0,0,0;
 	is_class=true,
-	init=function()end,
-	del=function()end,
-	frame=function()end,
-	render=DefaultRenderFunc,
-	colli=function(other)end,
-	kill=function()end
+	init=nil,
+	del=nil,
+	frame=nil,
+	render=nil,
+	colli=nil,
+	kill=nil
 }
 
 
@@ -586,11 +586,14 @@ function FrameFunc()
 		obj.omiga = 1;
 		--obj.vx = 1;
 	end
-	return false
+	return lstg.quit_flag;
 end
 
+lstg.GlobalUI = GetUI("GlobalUI");
+
 function RenderFunc()
-	lstg.Print("RenderFunc");
+	SetUI("GlobalUI", lstg.GlobalUI);
+	lstg.GlobalUI = {};
 end
 
 function FocusLoseFunc()
@@ -608,6 +611,9 @@ function GameInit()
 	lstg.SetBound(-5, 5, -5, 5);
 	lstg.LoadPS('graze','graze.psi','undefined');
 	CreateUI("test", "test.json");
+	local node = GetUINode("test", "FPSCounter");
+	node.x = 10;
+	SetUINode("test", "FPSCounter", node);
 	--local obj = lstg.New(Bar);
 	--obj.img = "graze";
 end
@@ -615,6 +621,23 @@ end
 function GameExit()
 	lstg.Print("GameExit");
 end
+
+function Render(image_name, x, y, rot, hscale, vscale, z)
+	rot = rot or 0;
+	hscale = hscale or 1;
+	vscale = vscale or 1;
+	z = z or 0.5;
+	lstg.GlobalUI.image_name = { type = "image", image = image_name, x = x, y = y, width = -vscale, height = -hscale };
+end
+
+function RenderText(name, text, x, y, scale, align, color)
+	scale = scale or 1;
+	align = align or 5;
+	color = color or 0xFFFFFFFF;
+	lstg.GlobalUI[name..text] = { type = "text", caption = text, x = x, y = y, width = -1, height = -1, color = color };
+end
+
+Include 'root.lua'
 
 for _,v in pairs(all_class) do
 	v[1]=v.init;

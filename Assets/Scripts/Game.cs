@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using SLua;
@@ -40,6 +41,7 @@ public class Game : MonoBehaviour
 	private LuaFunction _focusLoseFunc;
 	private LuaFunction _focusGainFunc;
 	private LuaFunction _frameFunc;
+	private LuaFunction _renderFunc;
 
 	public static Game GameInstance { get; private set; }
 
@@ -51,6 +53,8 @@ public class Game : MonoBehaviour
 	public float GlobalSoundEffectVolume { get; set; }
 
 	public int ObjectCount { get; set; }
+
+	public JsonUI GlobalUI;
 
 	private class GameLogHandler
 		: ILogHandler, IDisposable
@@ -131,11 +135,18 @@ public class Game : MonoBehaviour
 		LuaDLL.lua_insert(l, 1);  // t(object) t(class) ... ot
 		LuaDLL.lua_pop(l, 1);  // t(object) t(class) ...
 		LuaDLL.lua_rawgeti(l, 2, (int) LSTGObject.ObjFuncIndex.Init);  // t(object) t(class) ... f(init)
-		LuaDLL.lua_insert(l, 3);  // t(object) t(class) f(init) ...
-		LuaDLL.lua_pushvalue(l, 1);  // t(object) t(class) f(init) ... t(object)
-		LuaDLL.lua_insert(l, 4);  // t(object) t(class) f(init) t(object) ...
-		LuaDLL.lua_call(l, LuaDLL.lua_gettop(l) - 3, 0);  // t(object) t(class)  执行构造函数
-		LuaDLL.lua_pop(l, 1);  // t(object)
+		if (LuaDLL.lua_isnil(l, -1))
+		{
+			LuaDLL.lua_pop(l, LuaDLL.lua_gettop(l) - 1);
+		}
+		else
+		{
+			LuaDLL.lua_insert(l, 3);  // t(object) t(class) f(init) ...
+			LuaDLL.lua_pushvalue(l, 1);  // t(object) t(class) f(init) ... t(object)
+			LuaDLL.lua_insert(l, 4);  // t(object) t(class) f(init) t(object) ...
+			LuaDLL.lua_call(l, LuaDLL.lua_gettop(l) - 3, 0);  // t(object) t(class)  执行构造函数
+			LuaDLL.lua_pop(l, 1);  // t(object)
+		}
 
 		LuaTable objTable;
 		LuaObject.checkType(l, -1, out objTable);
@@ -149,6 +160,11 @@ public class Game : MonoBehaviour
 		LSTGObject result;
 		ObjectDictionary.TryGetValue(id, out result);
 		return result;
+	}
+
+	public IEnumerable<LSTGObject> GetObjects()
+	{
+		return from p in ObjectDictionary select p.Value;
 	}
 
 	public void Awake()
@@ -178,6 +194,8 @@ public class Game : MonoBehaviour
 		GameInstance = this;
 		CurrentStatus = Status.Initializing;
 
+		GlobalUI.OnAcquireJson("{}");
+
 		var audioSources = GetComponents<AudioSource>();
 		MusicAudioSource = audioSources[0];
 		SoundAudioSource = audioSources[1];
@@ -185,11 +203,6 @@ public class Game : MonoBehaviour
 		GameLogger = new Logger(new GameLogHandler(LogFilePath));
 		ResourceManager = new ResourceManager();
 		ResourceManager.AddResourceDataProvider(new LocalFileProvider(DataPath));
-		var resourcePackStream = ResourceManager.GetResourceStream("data.zip");
-		if (resourcePackStream != null)
-		{
-			ResourceManager.AddResourceDataProvider(new ResourcePack(resourcePackStream));
-		}
 
 		Bound = gameObject.AddComponent<BoxCollider>();
 		Bound.isTrigger = true;
@@ -198,14 +211,6 @@ public class Game : MonoBehaviour
 		LuaVM.init(null, () =>
 		{
 			var l = LuaVM.luaState.L;
-			LuaDLL.lua_gc(l, LuaGCOptions.LUA_GCSTOP, 0);
-
-			LuaDLL.luaL_openlibs(l);
-
-			BuiltinFunctions.Register(l);
-			BuiltinFunctions.InitMetaTable(l);
-
-			LuaDLL.lua_gc(l, LuaGCOptions.LUA_GCRESTART, -1);
 
 			LuaDLL.lua_pushglobaltable(l);
 			LuaTable globalTable;
@@ -216,6 +221,15 @@ public class Game : MonoBehaviour
 			}
 			GlobalTable = globalTable;
 			LuaDLL.lua_pop(l, 1);
+
+			LuaDLL.lua_gc(l, LuaGCOptions.LUA_GCSTOP, 0);
+
+			LuaDLL.luaL_openlibs(l);
+
+			BuiltinFunctions.Register(l);
+			BuiltinFunctions.InitMetaTable(l);
+
+			LuaDLL.lua_gc(l, LuaGCOptions.LUA_GCRESTART, -1);
 			
 			ResourceManager.FindResourceAs<ResLuaScript>("launch").Execute(LuaVM.luaState);
 			ResourceManager.FindResourceAs<ResLuaScript>("core.lua").Execute(LuaVM.luaState);
@@ -248,6 +262,12 @@ public class Game : MonoBehaviour
 			if (_frameFunc == null)
 			{
 				throw new Exception("FrameFunc does not exist or is not a function");
+			}
+
+			_renderFunc = globalTable["RenderFunc"] as LuaFunction;
+			if (_renderFunc == null)
+			{
+				throw new Exception("RenderFunc does not exist or is not a function");
 			}
 
 			gameInit.call();
@@ -288,6 +308,8 @@ public class Game : MonoBehaviour
 		{
 			CurrentStatus = Status.Aborted;
 		}
+
+		_renderFunc.call();
 	}
 
 	public void OnApplicationQuit()

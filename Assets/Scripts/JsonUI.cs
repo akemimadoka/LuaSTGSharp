@@ -2,19 +2,25 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SLua;
 
 public static partial class ExtendClass
 {
-	public static T GetOrExecute<T>(this KeyValuePair<string, JToken> tokenPair, string key)
+	public static T GetOrExecute<T>(this KeyValuePair<string, JToken> tokenPair, string key, T defaultValue = default(T))
 	{
-		return tokenPair.Value[key].CastOrExecute<T>(string.Format("{0}.{1}", tokenPair.Key, key));
+		return tokenPair.Value[key].CastOrExecute<T>(string.Format("{0}.{1}", tokenPair.Key, key), defaultValue);
 	}
 
-	public static T CastOrExecute<T>(this JToken token, string chunkName)
+	public static T CastOrExecute<T>(this JToken token, string chunkName, T defaultValue = default(T))
 	{
+		if (token == null)
+		{
+			return defaultValue;
+		}
+
 		if (token.Type != JTokenType.String)
 		{
 			return token.ToObject<T>();
@@ -23,12 +29,23 @@ public static partial class ExtendClass
 		var tokenValue = token.ToObject<string>();
 		object resultValue = tokenValue;
 
+		string evaluateString = null;
 		if (tokenValue.StartsWith("@"))
 		{
-			resultValue = Game.GameInstance.LuaVM.luaState.doString(string.Format("return {0}", tokenValue.TrimStart('@')), chunkName);
+			evaluateString = string.Format("return {0}", tokenValue.TrimStart('@'));
+		}
+		else if (tokenValue.StartsWith("#"))
+		{
+			evaluateString = tokenValue.TrimStart('#');
 		}
 
-		return (T) Convert.ChangeType(resultValue, typeof(T));
+		if (evaluateString != null)
+		{
+			resultValue = Game.GameInstance.LuaVM.luaState.doString(evaluateString, chunkName);
+		}
+
+		var converter = TypeDescriptor.GetConverter(typeof(T));
+		return (T) converter.ConvertFrom(resultValue);
 	}
 }
 
@@ -88,7 +105,35 @@ public class JsonUI : MonoBehaviour
 					}
 					break;
 				case "text":
-					GUI.Label(rect, item.GetOrExecute<string>("caption"));
+					var text = item.GetOrExecute<string>("caption");
+					var style = GUI.skin.label;
+					if (rect.width <= 0 || rect.height <= 0)
+					{
+						var content = new GUIContent { text = text };
+						var size = style.CalcSize(content);
+						if (rect.width <= 0)
+						{
+							rect.width = size.x;
+						}
+						if (rect.height <= 0)
+						{
+							rect.height = size.y;
+						}
+					}
+
+					var oldColor = style.normal.textColor;
+					var colorInt = (uint?) item.GetOrExecute<double?>("color");
+					if (colorInt != null)
+					{
+						var color = new Color32(
+							(byte) (colorInt >> 24 & 0xff),
+							(byte) (colorInt >> 16 & 0xff),
+							(byte) (colorInt >> 8 & 0xff),
+							(byte) (colorInt & 0xff));
+						style.normal.textColor = color;
+					}
+					GUI.Label(rect, text);
+					style.normal.textColor = oldColor;
 					break;
 				case "image":
 					var texture = Game.GameInstance.ResourceManager.FindResourceAs<ResTexture>(item.GetOrExecute<string>("image"),
@@ -97,20 +142,39 @@ public class JsonUI : MonoBehaviour
 					{
 						goto default;
 					}
-					GUI.Label(rect, texture.GetTexture());
+					var tex = texture.GetTexture();
+					if (rect.width <= 0)
+					{
+						rect.width = -rect.width * tex.width;
+					}
+					if (rect.height <= 0)
+					{
+						rect.height = -rect.height * tex.height;
+					}
+					GUI.Label(rect, tex);
 					break;
 				case "edit":
 					var l = luaState.L;
 					var binding = item.GetOrExecute<string>("binding");
+					if (string.IsNullOrEmpty(binding))
+					{
+						GUI.TextField(rect, "");
+						break;
+					}
+					string bindingNamespace = null;
 					var dotPos = binding.LastIndexOf('.');
-					var bindingNamespace = binding.Substring(0, dotPos);
-					var bindingVar = binding.Substring(dotPos + 1);
-					if (string.IsNullOrEmpty(bindingVar))
+					if (dotPos != -1)
+					{
+						bindingNamespace = binding.Substring(0, dotPos);
+						binding = binding.Substring(dotPos + 1);
+					}
+					
+					if (string.IsNullOrEmpty(binding))
 					{
 						goto default;
 					}
 					LuaObject.newTypeTable(l, bindingNamespace);
-					LuaDLL.lua_pushstring(l, bindingVar);
+					LuaDLL.lua_pushstring(l, binding);
 					LuaDLL.lua_gettable(l, -2);
 					string bindingValue;
 					LuaObject.checkType(l, -1, out bindingValue);
@@ -120,7 +184,7 @@ public class JsonUI : MonoBehaviour
 						bindingValue = "";
 					}
 					bindingValue = GUI.TextField(rect, bindingValue);
-					LuaDLL.lua_pushstring(l, bindingVar);
+					LuaDLL.lua_pushstring(l, binding);
 					LuaDLL.lua_pushstring(l, bindingValue);
 					LuaDLL.lua_settable(l, -3);
 					LuaDLL.lua_pop(l, 1);

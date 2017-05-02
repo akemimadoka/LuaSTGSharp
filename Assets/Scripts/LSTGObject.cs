@@ -261,8 +261,8 @@ public class LSTGObject : MonoBehaviour
 		}
 	}
 
-	private LuaTable _objTable;
-	private LuaTable _classTable;
+	public LuaTable ObjTable { get; private set; }
+	public LuaTable ClassTable { get; private set; }
 
 	private void UnloadRenderResource()
 	{
@@ -338,22 +338,22 @@ public class LSTGObject : MonoBehaviour
 
 	public void OnAcquireLuaTable(LuaTable objTable)
 	{
-		_objTable = objTable;
-		_classTable = (LuaTable) objTable[1];
+		ObjTable = objTable;
+		ClassTable = (LuaTable) objTable[1];
 	}
 
 	// Update is called once per frame
 	public void Update()
 	{
-		if (_objTable == null || Freezed)
+		if (ObjTable == null || Freezed)
 		{
 			return;
 		}
 		
-		var frameFunc = _classTable[(int) ObjFuncIndex.Frame] as LuaFunction;
+		var frameFunc = ClassTable[(int) ObjFuncIndex.Frame] as LuaFunction;
 		if (frameFunc != null)
 		{
-			frameFunc.call(_objTable);
+			frameFunc.call(ObjTable);
 		}
 
 		LastPosition = transform.position;
@@ -367,14 +367,26 @@ public class LSTGObject : MonoBehaviour
 		++Timer;
 		++AniTimer;
 
-		var renderFunc = _classTable[(int) ObjFuncIndex.Render] as LuaFunction;
+		var renderFunc = ClassTable[(int) ObjFuncIndex.Render] as LuaFunction;
 		if (renderFunc != null)
 		{
-			renderFunc.call(_objTable);
+			renderFunc.call(ObjTable);
+		}
+		else
+		{
+			DefaultRenderFunc();
 		}
 		
 		if (ObjectStatus != Status.Default && ObjectStatus != Status.Free)
 		{
+			var l = Game.GameInstance.LuaVM.luaState.L;
+
+			LuaDLL.lua_pushlightuserdata(l, l);
+			LuaDLL.lua_gettable(l, LuaIndexes.LUA_REGISTRYINDEX);
+			LuaDLL.lua_pushnil(l);
+			LuaDLL.lua_rawseti(l, -2, Id + 1);
+			LuaDLL.lua_pop(l, 1);
+
 			Destroy(gameObject);
 		}
 	}
@@ -382,6 +394,11 @@ public class LSTGObject : MonoBehaviour
 	private void OnDisable()
 	{
 		--Game.GameInstance.ObjectCount;
+	}
+
+	private void OnDestroy()
+	{
+		Game.GameInstance.ObjectDictionary.Remove(Id);
 	}
 
 	public void DefaultRenderFunc()
@@ -399,20 +416,20 @@ public class LSTGObject : MonoBehaviour
 	public void KillSelf()
 	{
 		ObjectStatus = Status.Kill;
-		var killFunc = _classTable[(int) ObjFuncIndex.Kill] as LuaFunction;
+		var killFunc = ClassTable[(int) ObjFuncIndex.Kill] as LuaFunction;
 		if (killFunc != null)
 		{
-			killFunc.call(_objTable);
+			killFunc.call(ObjTable);
 		}
 	}
 
 	public void DelSelf()
 	{
 		ObjectStatus = Status.Del;
-		var delFunc = _classTable[(int) ObjFuncIndex.Del] as LuaFunction;
+		var delFunc = ClassTable[(int) ObjFuncIndex.Del] as LuaFunction;
 		if (delFunc != null)
 		{
-			delFunc.call(_objTable);
+			delFunc.call(ObjTable);
 		}
 	}
 
@@ -440,10 +457,10 @@ public class LSTGObject : MonoBehaviour
 			return;
 		}
 
-		var colliFunc = _classTable[(int) ObjFuncIndex.Colli] as LuaFunction;
+		var colliFunc = ClassTable[(int) ObjFuncIndex.Colli] as LuaFunction;
 		if (colliFunc != null)
 		{
-			colliFunc.call(_objTable, other._objTable);
+			colliFunc.call(ObjTable, other.ObjTable);
 		}
 	}
 

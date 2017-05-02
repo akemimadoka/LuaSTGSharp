@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
 using SLua;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -265,6 +266,84 @@ public static class BuiltinFunctions
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int GetAxisState(IntPtr l)
+	{
+		string axisName;
+		LuaObject.checkType(l, 1, out axisName);
+		if (string.IsNullOrEmpty(axisName))
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'GetAxisState'");
+		}
+
+		LuaObject.pushValue(l, Input.GetAxis(axisName));
+		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int LoadPack(IntPtr l)
+	{
+		string packName, password = null;
+		LuaObject.checkType(l, 1, out packName);
+		if (LuaDLL.lua_gettop(l) > 1)
+		{
+			LuaObject.checkType(l, 2, out password);
+		}
+
+		if (packName == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'LoadPack'");
+		}
+
+		var resourcePackStream = Game.GameInstance.ResourceManager.GetResourceStream(packName, password);
+		if (resourcePackStream == null)
+		{
+			return LuaDLL.luaL_error(l, "pack '{0}' cannot be loaded.", packName);
+		}
+
+		Game.GameInstance.ResourceManager.AddResourceDataProvider(new ResourcePack(resourcePackStream));
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int UnloadPack(IntPtr l)
+	{
+		// TODO: 未实现
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int ExtractRes(IntPtr l)
+	{
+		string path, target;
+		LuaObject.checkType(l, 1, out path);
+		LuaObject.checkType(l, 2, out target);
+		if (path == null || target == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'ExtractRes'");
+		}
+
+		try
+		{
+			using (var file = new FileStream(target, FileMode.CreateNew))
+			{
+				var resource = Game.GameInstance.ResourceManager.GetResourceStream(path);
+				if (resource == null)
+				{
+					return LuaDLL.luaL_error(l, "resource '{0}' cannot be loaded", path);
+				}
+
+				resource.CopyTo(file);
+			}
+		}
+		catch (Exception e)
+		{
+			return LuaDLL.luaL_error(l, "unhandled exception {0} caught.", e);
+		}
+		
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int DoFile(IntPtr l)
 	{
 		string path;
@@ -338,6 +417,235 @@ public static class BuiltinFunctions
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int CreateUIFromContent(IntPtr l)
+	{
+		string name, content;
+		LuaObject.checkType(l, 1, out name);
+		LuaObject.checkType(l, 2, out content);
+
+		if (name == null || content == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'CreateUI'");
+		}
+
+		var uiObj = new GameObject(name)
+		{
+			layer = LayerMask.NameToLayer("UI")
+		};
+		var ui = uiObj.AddComponent<JsonUI>();
+		ui.OnAcquireJson(content);
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetUI(IntPtr l)
+	{
+		string name;
+		LuaTable content;
+		LuaObject.checkType(l, 1, out name);
+		LuaObject.checkType(l, 2, out content);
+
+		if (name == null || content == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'SetUINode'");
+		}
+
+		var uiObj = GameObject.Find(name);
+		JsonUI ui;
+		if (uiObj == null || (ui = uiObj.GetComponent<JsonUI>()) == null)
+		{
+			return LuaDLL.luaL_error(l, "no such ui.");
+		}
+
+		using (content)
+		{
+			var jobj = ui.GetJObject();
+			jobj.RemoveAll();
+			foreach (var pair in content)
+			{
+				var obj = new JObject();
+				foreach (var item in (LuaTable) pair.value)
+				{
+					obj.Add((string) item.key, JToken.FromObject(item.value));
+				}
+				jobj.Add((string) pair.key, obj);
+			}
+		}
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int GetUI(IntPtr l)
+	{
+		string name;
+		LuaObject.checkType(l, 1, out name);
+
+		if (name == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'DestroyUI'");
+		}
+
+		var uiObj = GameObject.Find(name);
+		JsonUI ui;
+		if (uiObj == null || (ui = uiObj.GetComponent<JsonUI>()) == null)
+		{
+			return LuaDLL.luaL_error(l, "no such ui.");
+		}
+
+		var jobj = ui.GetJObject();
+		LuaDLL.lua_createtable(l, 0, jobj.Count);
+		foreach (var node in jobj)
+		{
+			var values = (JObject) node.Value;
+			LuaDLL.lua_createtable(l, 0, values.Count);
+			foreach (var item in values)
+			{
+				var str = item.Value.ToString();
+				int testint;
+				float testfloat;
+				if (int.TryParse(str, out testint))
+				{
+					LuaDLL.lua_pushinteger(l, testint);
+				}
+				else if (float.TryParse(str, out testfloat))
+				{
+					LuaDLL.lua_pushnumber(l, testfloat);
+				}
+				else
+				{
+					LuaDLL.lua_pushstring(l, str);
+				}
+				LuaDLL.lua_setfield(l, -2, item.Key);
+			}
+			LuaDLL.lua_setfield(l, -2, node.Key);
+		}
+
+		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetUINode(IntPtr l)
+	{
+		string name, nodename;
+		LuaTable content;
+		LuaObject.checkType(l, 1, out name);
+		LuaObject.checkType(l, 2, out nodename);
+		LuaObject.checkType(l, 3, out content);
+
+		if (name == null || nodename == null || content == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'SetUINode'");
+		}
+
+		var uiObj = GameObject.Find(name);
+		JsonUI ui;
+		if (uiObj == null || (ui = uiObj.GetComponent<JsonUI>()) == null)
+		{
+			return LuaDLL.luaL_error(l, "no such ui.");
+		}
+		
+		using (content)
+		{
+			JToken token;
+			JObject node;
+			if (ui.GetJObject().TryGetValue(nodename, out token))
+			{
+				node = (JObject) token;
+			}
+			else
+			{
+				node = new JObject();
+				ui.GetJObject().Add(nodename, node);
+			}
+			
+			foreach (var item in content)
+			{
+				node[(string) item.key] = JToken.FromObject(item.value);
+			}
+		}
+		
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int GetUINode(IntPtr l)
+	{
+		string name, nodename;
+		LuaObject.checkType(l, 1, out name);
+		LuaObject.checkType(l, 2, out nodename);
+
+		if (name == null || nodename == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'DestroyUI'");
+		}
+
+		var uiObj = GameObject.Find(name);
+		JsonUI ui;
+		if (uiObj == null || (ui = uiObj.GetComponent<JsonUI>()) == null)
+		{
+			return LuaDLL.luaL_error(l, "no such ui.");
+		}
+		
+		JToken token;
+		if (!ui.GetJObject().TryGetValue(nodename, out token))
+		{
+			LuaDLL.lua_pushnil(l);
+		}
+		else
+		{
+			var node = (JObject) token;
+			LuaDLL.lua_createtable(l, 0, node.Count);
+			foreach (var item in node)
+			{
+				var str = item.Value.ToString();
+				int testint;
+				float testfloat;
+				if (int.TryParse(str, out testint))
+				{
+					LuaDLL.lua_pushinteger(l, testint);
+				}
+				else if (float.TryParse(str, out testfloat))
+				{
+					LuaDLL.lua_pushnumber(l, testfloat);
+				}
+				else
+				{
+					LuaDLL.lua_pushstring(l, str);
+				}
+				LuaDLL.lua_setfield(l, -2, item.Key);
+			}
+		}
+		
+		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int RemoveUINode(IntPtr l)
+	{
+		string name, nodename;
+		LuaObject.checkType(l, 1, out name);
+		LuaObject.checkType(l, 2, out nodename);
+
+		if (name == null || nodename == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'DestroyUI'");
+		}
+
+		var uiObj = GameObject.Find(name);
+		JsonUI ui;
+		if (uiObj == null || (ui = uiObj.GetComponent<JsonUI>()) == null)
+		{
+			return LuaDLL.luaL_error(l, "no such ui.");
+		}
+
+		ui.GetJObject().Remove(nodename);
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int DestroyUI(IntPtr l)
 	{
 		string name;
@@ -376,6 +684,25 @@ public static class BuiltinFunctions
 		}
 
 		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int GetTextureSize(IntPtr l)
+	{
+		string name;
+		LuaObject.checkType(l, 1, out name);
+
+		var texture = Game.GameInstance.ResourceManager.FindResourceAs<ResTexture>(name, autoLoad: false);
+
+		if (texture == null)
+		{
+			return LuaDLL.luaL_error(l, "texture '{0}' does not exist.", name);
+		}
+
+		var tex = texture.GetTexture();
+		LuaDLL.lua_pushnumber(l, tex.width);
+		LuaDLL.lua_pushnumber(l, tex.height);
+		return 2;
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
@@ -435,6 +762,57 @@ public static class BuiltinFunctions
 		return 0;
 	}
 
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int LoadAnimation(IntPtr l)
+	{
+		var top = LuaDLL.lua_gettop(l);
+
+		string name, textureName;
+		LuaObject.checkType(l, 1, out name);
+		LuaObject.checkType(l, 2, out textureName);
+
+		var activedPool = Game.GameInstance.ResourceManager.GetActivedPool();
+		if (activedPool == null)
+		{
+			return LuaDLL.luaL_error(l, "cannot load resource at this time.");
+		}
+
+		if (activedPool.ResourceExists(name, typeof(ResAnimation)))
+		{
+			return LuaDLL.luaL_error(l, "sprite '{0}' has already loaded", name);
+		}
+
+		if (!activedPool.ResourceExists(textureName, typeof(ResTexture)))
+		{
+			return LuaDLL.luaL_error(l, "texture '{0}' has not loaded", textureName);
+		}
+
+		float a = 0, b = 0;
+		var rect = false;
+
+		if (top >= 10)
+		{
+			LuaObject.checkType(l, 10, out a);
+		}
+
+		if (top >= 11)
+		{
+			LuaObject.checkType(l, 11, out b);
+		}
+
+		if (top >= 12)
+		{
+			LuaObject.checkType(l, 12, out rect);
+		}
+
+		var ani = new ResAnimation(name, activedPool.GetResourceAs<ResTexture>(textureName, autoLoad: false),
+			(float) LuaDLL.luaL_checknumber(l, 3), (float) LuaDLL.luaL_checknumber(l, 4), (float) LuaDLL.luaL_checknumber(l, 5),
+			(float) LuaDLL.luaL_checknumber(l, 6), (uint) LuaDLL.luaL_checkinteger(l, 7), (uint) LuaDLL.luaL_checkinteger(l, 8),
+			(uint) LuaDLL.luaL_checkinteger(l, 9), a, b, rect);
+
+		return activedPool.AddResource(ani) ? 0 : LuaDLL.luaL_error(l, "load animation failed (name='{0}', tex='{1}').", name, textureName);
+	}
+
 	// TODO: 需要修正
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int LoadPS(IntPtr l)
@@ -490,7 +868,8 @@ public static class BuiltinFunctions
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int LoadAudio(IntPtr l)
 	{
-		string name, path;
+		return 0;
+		/*string name, path;
 		LuaObject.checkType(l, 1, out name);
 		LuaObject.checkType(l, 2, out path);
 
@@ -500,13 +879,14 @@ public static class BuiltinFunctions
 			return LuaDLL.luaL_error(l, "audio '{0}' has already loaded.", name);
 		}
 
-		return activedPool.GetResourceAs<ResAudio>(name, path) == null ? LuaDLL.luaL_error(l, "failed to load audio {0} from path {1}.", name, path) : 0;
+		return activedPool.GetResourceAs<ResAudio>(name, path) == null ? LuaDLL.luaL_error(l, "failed to load audio {0} from path {1}.", name, path) : 0;*/
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int SetAudioLoop(IntPtr l)
 	{
-		string name;
+		return 0;
+		/*string name;
 		float loopBegin, loopEnd;
 		LuaObject.checkType(l, 1, out name);
 		if (string.IsNullOrEmpty(name) || !LuaObject.checkType(l, 2, out loopBegin) || !LuaObject.checkType(l, 3, out loopEnd))
@@ -527,13 +907,13 @@ public static class BuiltinFunctions
 
 		audio.SetLoopInfo(loopBegin, loopEnd);
 
-		return 0;
+		return 0;*/
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int PlayMusic(IntPtr l)
 	{
-		var argc = LuaDLL.lua_gettop(l);
+		/*var argc = LuaDLL.lua_gettop(l);
 		string name;
 		float volume = 1, position = 0;
 
@@ -569,7 +949,7 @@ public static class BuiltinFunctions
 		Game.GameInstance.MusicAudioSource.clip = audioClip;
 		Game.GameInstance.MusicAudioSource.time = position;
 		Game.GameInstance.MusicAudioSource.volume = volume * Game.GameInstance.GlobalMusicVolume;
-		Game.GameInstance.MusicAudioSource.Play();
+		Game.GameInstance.MusicAudioSource.Play();*/
 
 		return 0;
 	}
@@ -577,7 +957,7 @@ public static class BuiltinFunctions
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int PlaySound(IntPtr l)
 	{
-		var argc = LuaDLL.lua_gettop(l);
+		/*var argc = LuaDLL.lua_gettop(l);
 		string name;
 		float volume = 1, pan = 0;
 
@@ -613,7 +993,7 @@ public static class BuiltinFunctions
 		Game.GameInstance.SoundAudioSource.clip = audioClip;
 		Game.GameInstance.SoundAudioSource.panStereo = pan;
 		Game.GameInstance.SoundAudioSource.volume = volume * Game.GameInstance.GlobalSoundEffectVolume;
-		Game.GameInstance.SoundAudioSource.Play();
+		Game.GameInstance.SoundAudioSource.Play();*/
 
 		return 0;
 	}
@@ -864,11 +1244,77 @@ public static class BuiltinFunctions
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int ObjList(IntPtr l)
+	{
+		var group = LuaDLL.luaL_checkinteger(l, 1);
+		if (LayerMask.LayerToName(group) == null)
+		{
+			group = -1;
+		}
+		var e = Game.GameInstance.GetObjects().Where(o => group == -1 || o.Group == group);
+		var iterator = e.GetEnumerator();
+		if (!iterator.MoveNext())
+		{
+			return 0;
+		}
+		
+		LuaDLL.lua_pushcclosure(l, l_ =>
+		{
+			if (iterator != null)
+			{
+				if (iterator.MoveNext())
+				{
+					var obj = iterator.Current;
+					if (obj != null)
+					{
+						LuaDLL.lua_pushinteger(l_, obj.Id + 1);
+						LuaObject.pushValue(l_, obj.ObjTable);
+						return 2;
+					}
+				}
+				else
+				{
+					iterator.Dispose();
+					iterator = null;
+				}
+			}
+			
+			return 0;
+		}, 0);
+		LuaDLL.lua_pushinteger(l, group);
+		System.Diagnostics.Debug.Assert(iterator.Current != null, "iterator.Current != null");
+		LuaDLL.lua_pushinteger(l, iterator.Current.Id);
+
+		return 3;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	[LuaFunctionAliasAs("GetnObj")]
 	public static int GetObjectCount(IntPtr l)
 	{
 		LuaDLL.lua_pushinteger(l, Game.GameInstance.ObjectCount);
 		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int UpdateObjList(IntPtr l)
+	{
+		// 已否决
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int ObjFrame(IntPtr l)
+	{
+		// 已否决
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int ObjRender(IntPtr l)
+	{
+		// 已否决
+		return 0;
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
@@ -912,9 +1358,130 @@ public static class BuiltinFunctions
 		return 1;
 	}
 
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetViewport(IntPtr l)
+	{
+		Camera.main.rect = new Rect(
+			(float) LuaDLL.luaL_checknumber(l, 1),
+			(float) LuaDLL.luaL_checknumber(l, 2),
+			(float) LuaDLL.luaL_checknumber(l, 3),
+			(float) LuaDLL.luaL_checknumber(l, 4));
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetOrtho(IntPtr l)
+	{
+		Camera.main.orthographic = true;
+		Camera.main.worldToCameraMatrix = Matrix4x4.identity;
+		Camera.main.cullingMatrix = Matrix4x4.identity;
+		Camera.main.projectionMatrix = Matrix4x4.Ortho(
+			(float) LuaDLL.luaL_checknumber(l, 1),
+			(float) LuaDLL.luaL_checknumber(l, 2),
+			(float) LuaDLL.luaL_checknumber(l, 3),
+			(float) LuaDLL.luaL_checknumber(l, 4), 0, 100);
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetPerspective(IntPtr l)
+	{
+		// TODO
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetImgState(IntPtr l)
+	{
+		LuaTable obj;
+		LuaObject.checkType(l, 1, out obj);
+		if (obj == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'SetImgState'");
+		}
+		var id = (int) obj[2];
+		var blendMode = TranslateBlendMode(l, 2);
+		// TODO
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetImageState(IntPtr l)
+	{
+		string image;
+		LuaObject.checkType(l, 1, out image);
+		if (string.IsNullOrEmpty(image))
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'SetImageState'");
+		}
+		var sprite = Game.GameInstance.ResourceManager.FindResourceAs<ResSprite>(image, autoLoad: false);
+		if (sprite == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'SetImageState'");
+		}
+
+		var blendMode = TranslateBlendMode(l, 2);
+		var top = LuaDLL.lua_gettop(l);
+		if (top == 3)
+		{
+			// TODO
+		}
+		else if (top == 6)
+		{
+			
+		}
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetAnimationState(IntPtr l)
+	{
+		// TODO
+
+		return 0;
+	}
+
+	internal static BlendMode TranslateBlendMode(IntPtr l, int argnum)
+	{
+		string s;
+		LuaObject.checkType(l, argnum, out s);
+		if (s != null)
+		{
+			switch (s)
+			{
+				case "mul+add":
+					return BlendMode.MulAdd;
+				case "":
+				case "mul+alpha":
+					return BlendMode.MulAlpha;
+				case "add+add":
+					return BlendMode.AddAdd;
+				case "add+alpha":
+					return BlendMode.AddAlpha;
+				case "add+rev":
+					return BlendMode.AddRev;
+				case "mul+rev":
+					return BlendMode.MulRev;
+				case "add+sub":
+					return BlendMode.AddSub;
+				case "mul+sub":
+					return BlendMode.MulSub;
+				default:
+					LuaDLL.luaL_error(l, "invalid blend mode '{0}'.", s);
+					break;
+			}
+		}
+
+		return BlendMode.MulAlpha;
+	}
+
 	public static void Register(IntPtr l)
 	{
-		foreach (var method in from method in typeof(BuiltinFunctions).GetMethods(BindingFlags.Static | BindingFlags.Public)
+		foreach (var method in from method in typeof(BuiltinFunctions).GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
 			where method.IsDefined(typeof(MonoPInvokeCallbackAttribute), false)
 			select method)
 		{

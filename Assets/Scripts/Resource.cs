@@ -444,7 +444,7 @@ public class ResAnimation
 			for (uint i = 0; i < n; ++i)
 			{
 				var sprite = Sprite.Create(rawTexture,
-					new Rect(x + width * i, y + height * j, x + width * (i + 1), y + height * (j + 1)), new Vector2(0.5f, 0.5f));
+					new Rect(x + width * i, y + height * j, width, height), new Vector2(0.5f, 0.5f));
 				_imageSequence.Add(sprite);
 			}
 		}

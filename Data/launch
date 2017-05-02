@@ -1,5 +1,41 @@
 for k,v in pairs(lstg) do _G[k]=v end
 
+package.cpath=package.cpath..';.\\?.dll'
+
+DoFile("version")
+
+UnitList=ObjList
+GetnUnit=GetnObj
+
+function Serialize(o)
+	if type(o)=='number' then
+		return tostring(o)
+	elseif type(o)=='string' then
+		return string.format('%q',o)
+	elseif type(o)=='boolean' then
+		return tostring(o)
+	elseif type(o)=='nil' then
+		return 'nil'
+	elseif type(o)=='table' then
+		if getmetatable(o) and getmetatable(o).data then o=getmetatable(o).data end
+		local r='{'
+		for k,v in pairs(o) do
+			if type(k)=='number' then k='['..k..']'
+			elseif type(k)=='string' then k=string.format('[%q]',k)
+			else error('cannot serialize a ' .. type(k)..' key')
+			end
+			r=r..k..'='..Serialize(v)..','
+		end
+		return r..'}'
+	else
+		error('cannot serialize a ' .. type(o))
+	end
+end
+
+function DeSerialize(s)
+	return assert(loadstring('return '..s))()
+end
+
 KEY={NULL=0x00}
 
 KEY.LBUTTON=0x01
@@ -184,3 +220,6 @@ default_setting=
 }
 
 setting = default_setting
+
+LoadPack('data.zip')
+--LoadPack('mod\\'..setting.mod..'.zip')
