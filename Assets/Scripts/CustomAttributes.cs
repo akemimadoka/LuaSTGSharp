@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+[AttributeUsage(AttributeTargets.Property)]
 public class LObjectPropertyAliasAsAttribute
 	: Attribute
 {
@@ -14,6 +15,7 @@ public class LObjectPropertyAliasAsAttribute
 	}
 }
 
+[AttributeUsage(AttributeTargets.Method)]
 public class LuaFunctionAliasAsAttribute
 	: Attribute
 {

@@ -277,12 +277,12 @@ end
 --base class of all classes
 object={0,0,0,0,0,0;
 	is_class=true,
-	init=nil,
-	del=nil,
-	frame=nil,
-	render=nil,
-	colli=nil,
-	kill=nil
+	init=function() end,
+	del=function() end,
+	frame=function() end,
+	render=DefaultRenderFunc,
+	colli=function(other) end,
+	kill=function() end
 }
 
 
@@ -569,23 +569,13 @@ function Foo:frame()
 	self.y = 5 * lstg.sin(self.timer);
 end
 
-function Foo:colli()
-	lstg.Kill(self);
+function Foo:colli(other)
+	Print(other);
 end
 
 Bar=Class(object)
 
 function FrameFunc()
-	Timer = Timer + 1
-	if Timer <= 50 then
-		--lstg.Print("FrameFunc:", lstg.GetFPS());
-		local obj = lstg.New(Foo);
-		obj.img = "undefined";
-		obj.group = GROUP_ENEMY_BULLET;
-		obj.x = 5;
-		obj.omiga = 1;
-		--obj.vx = 1;
-	end
 	return lstg.quit_flag;
 end
 
@@ -606,14 +596,17 @@ end
 
 function GameInit()
 	lstg.Print("GameInit");
-	lstg.LoadTexture("undefinedTex", "undefined.png");
-	lstg.LoadImage("undefined", "undefinedTex", 0, 0, 128, 128)
-	lstg.SetBound(-5, 5, -5, 5);
-	lstg.LoadPS('graze','graze.psi','undefined');
+	LoadTexture("undefinedTex", "undefined.png");
+	LoadImage("undefined", "undefinedTex", 0, 0, 128, 128)
+	SetBound(-10, 10, -10, 10);
+	LoadPS('graze','graze.psi','undefined');
 	CreateUI("test", "test.json");
 	local node = GetUINode("test", "FPSCounter");
 	node.x = 10;
 	SetUINode("test", "FPSCounter", node);
+
+	item.PlayerInit();
+	New(reimu_player);
 	--local obj = lstg.New(Bar);
 	--obj.img = "graze";
 end

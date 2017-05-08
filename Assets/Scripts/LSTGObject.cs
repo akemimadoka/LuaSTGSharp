@@ -149,24 +149,33 @@ public class LSTGObject : MonoBehaviour
 			spriteRenderer.sortingOrder = value;
 		}
 	}
-
-	private Vector2 _ab;
+	
 	public Vector2 Ab
 	{
-		get { return _ab; }
-		set
+		get
 		{
-			_ab = value;
 			var currentCollider = Collider;
 			var boxCollider2D = currentCollider as BoxCollider;
 			if (boxCollider2D != null)
 			{
-				boxCollider2D.size = _ab;
+				return boxCollider2D.size;
+			}
+
+			var circleCollider2D = (SphereCollider) currentCollider;
+			return new Vector2(circleCollider2D.radius, circleCollider2D.radius);
+		}
+		set
+		{
+			var currentCollider = Collider;
+			var boxCollider2D = currentCollider as BoxCollider;
+			if (boxCollider2D != null)
+			{
+				boxCollider2D.size = value;
 			}
 			else
 			{
 				var circleCollider2D = (SphereCollider) currentCollider;
-				circleCollider2D.radius = (_ab.x + _ab.y) / 2;
+				circleCollider2D.radius = (value.x + value.y) / 2;
 			}
 		}
 	}
@@ -179,7 +188,10 @@ public class LSTGObject : MonoBehaviour
 
 	public Collider Collider
 	{
-		get { return GetComponent<Collider>(); }
+		get
+		{
+			return GetComponent<Collider>();
+		}
 	}
 
 	[LObjectPropertyAliasAs("colli")]
@@ -196,6 +208,10 @@ public class LSTGObject : MonoBehaviour
 		set
 		{
 			var currentCollider = Collider;
+			if (currentCollider == null)
+			{
+				Debug.LogError("currentCollider is null");
+			}
 			var boxCollider2D = currentCollider as BoxCollider;
 			if (boxCollider2D == null && value)
 			{
@@ -207,7 +223,6 @@ public class LSTGObject : MonoBehaviour
 				Destroy(boxCollider2D);
 				gameObject.AddComponent<SphereCollider>().isTrigger = true;
 			}
-			Ab = _ab;
 		}
 	}
 
@@ -217,8 +232,19 @@ public class LSTGObject : MonoBehaviour
 	[LObjectPropertyAliasAs("hide")]
 	public bool Hide
 	{
-		get { return GetComponent<SpriteRenderer>().enabled; }
-		set { GetComponent<SpriteRenderer>().enabled = value; }
+		get
+		{
+			var spriteRenderer = GetComponent<SpriteRenderer>();
+			return spriteRenderer == null || spriteRenderer.enabled;
+		}
+		set
+		{
+			var spriteRenderer = GetComponent<SpriteRenderer>();
+			if (spriteRenderer != null)
+			{
+				spriteRenderer.enabled = value;
+			}
+		}
 	}
 
 	[LObjectPropertyAliasAs("freezed")]
@@ -241,7 +267,7 @@ public class LSTGObject : MonoBehaviour
 	}
 	[LObjectPropertyAliasAs("timer")]
 	public int Timer { get; private set; }
-	[LObjectPropertyAliasAs("ani_timer")]
+	[LObjectPropertyAliasAs("ani")]
 	public int AniTimer { get; private set; }
 
 	private Resource _renderResource;
@@ -255,7 +281,12 @@ public class LSTGObject : MonoBehaviour
 				return;
 			}
 
-			UnloadRenderResource();
+			var shouldUnload = _renderResource != null && (value == null || _renderResource.GetType() != value.GetType());
+			if (shouldUnload)
+			{
+				UnloadRenderResource();
+			}
+			
 			_renderResource = value;
 			LoadRenderResource();
 		}
@@ -293,18 +324,30 @@ public class LSTGObject : MonoBehaviour
 		var sprite = _renderResource as ResSprite;
 		if (sprite != null)
 		{
-			var spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+			var spriteRenderer = gameObject.GetComponent<SpriteRenderer>();
+			if (spriteRenderer == null || !spriteRenderer)
+			{
+				spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+			}
 			spriteRenderer.sprite = sprite.GetSprite();
 		}
 		else if (_renderResource is ResAnimation)
 		{
-			var spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+			var spriteRenderer = gameObject.GetComponent<SpriteRenderer>();
+			if (spriteRenderer == null || !spriteRenderer)
+			{
+				spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+			}
 			spriteRenderer.sprite = ((ResAnimation) _renderResource).GetSprite(0);
 		}
 		else if (_renderResource is ResParticle)
 		{
 			var resParticle = (ResParticle) _renderResource;
-			var particleSys = gameObject.AddComponent<ParticleSystem>();
+			var particleSys = gameObject.GetComponent<ParticleSystem>();
+			if (particleSys == null || !particleSys)
+			{
+				particleSys = gameObject.AddComponent<ParticleSystem>();
+			}
 			resParticle.SetParticleSystem(particleSys);
 		}
 	}
@@ -325,8 +368,7 @@ public class LSTGObject : MonoBehaviour
 		AniTimer = 0;*/
 	}
 
-	// Use this for initialization
-	public void Start()
+	public void Awake()
 	{
 		++Game.GameInstance.ObjectCount;
 		gameObject.AddComponent<BoxCollider>().isTrigger = true;
@@ -334,6 +376,11 @@ public class LSTGObject : MonoBehaviour
 		var rigidBody = gameObject.AddComponent<Rigidbody>();
 		rigidBody.isKinematic = true;
 		LastPosition = transform.position;
+	}
+
+	// Use this for initialization
+	public void Start()
+	{
 	}
 
 	public void OnAcquireLuaTable(LuaTable objTable)
@@ -376,7 +423,7 @@ public class LSTGObject : MonoBehaviour
 		{
 			DefaultRenderFunc();
 		}
-		
+
 		if (ObjectStatus != Status.Default && ObjectStatus != Status.Free)
 		{
 			var l = Game.GameInstance.LuaVM.luaState.L;

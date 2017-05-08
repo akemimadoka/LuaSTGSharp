@@ -9,11 +9,11 @@ using Newtonsoft.Json.Linq;
 using SLua;
 using UnityEngine;
 using Object = UnityEngine.Object;
-using Random = UnityEngine.Random;
+using Random = System.Random;
 
 public static class BuiltinFunctions
 {
-	public static readonly Regex AttrRegex = new Regex(@"^(\w*?)([xy]?)$", RegexOptions.Compiled);
+	public static readonly Regex AttrRegex = new Regex(@"^(\w*?)([xy]?)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int SetTitle(IntPtr l)
@@ -262,6 +262,13 @@ public static class BuiltinFunctions
 	public static int GetKeyState(IntPtr l)
 	{
 		LuaObject.pushValue(l, Input.GetKey((KeyCode) LuaDLL.luaL_checkinteger(l, 1)));
+		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int GetLastKey(IntPtr l)
+	{
+		LuaDLL.lua_pushinteger(l, (int) Game.GameInstance.LastKey);
 		return 1;
 	}
 
@@ -730,12 +737,17 @@ public static class BuiltinFunctions
 			return LuaDLL.luaL_error(l, "texture '{0}' has not loaded", textureName);
 		}
 
-		var sprite = Sprite.Create(activedPool.GetResourceAs<ResTexture>(textureName).GetTexture(), new Rect(
+		var resTexture = activedPool.GetResourceAs<ResTexture>(textureName);
+		var texture = resTexture.GetTexture();
+		var spriteRect = new Rect(
 			(float) LuaDLL.luaL_checknumber(l, 3),
 			(float) LuaDLL.luaL_checknumber(l, 4),
 			(float) LuaDLL.luaL_checknumber(l, 5),
-			(float) LuaDLL.luaL_checknumber(l, 6)), new Vector2(0.5f, 0.5f));
-			
+			(float) LuaDLL.luaL_checknumber(l, 6));
+		// fancy2D的精灵的原点在左上角，Unity的精灵的原点在左下角
+		spriteRect.y = texture.height - spriteRect.y - spriteRect.height;
+		var sprite = Sprite.Create(texture, spriteRect, new Vector2(0.5f, 0.5f));
+		
 		float a = 0, b = 0;
 		var rect = false;
 
@@ -1070,7 +1082,6 @@ public static class BuiltinFunctions
 						LuaObject.pushValue(l, obj.RenderResource == null ? null : obj.RenderResource.GetName());
 						break;
 					default:
-						Debug.LogWarning(string.Format("key '{0}' does not exist", key));
 						LuaDLL.lua_pushnil(l);
 						break;
 				}
@@ -1136,7 +1147,14 @@ public static class BuiltinFunctions
 					}
 						break;
 					case "":
-						prop.SetValue(obj, Convert.ChangeType(LuaObject.checkVar(l, -1), prop.PropertyType), null);
+						try
+						{
+							prop.SetValue(obj, Convert.ChangeType(LuaObject.checkVar(l, -1), prop.PropertyType), null);
+						}
+						catch (Exception)
+						{
+							goto default;
+						}
 						break;
 					default:
 						noAliasProperty = true;
@@ -1191,7 +1209,7 @@ public static class BuiltinFunctions
 					}
 						break;
 					default:
-						Debug.LogWarning(string.Format("key '{0}' does not exist", key));
+						LuaDLL.lua_rawset(l, 1);
 						break;
 				}
 			}
@@ -1219,7 +1237,7 @@ public static class BuiltinFunctions
 
 		var bound = Game.GameInstance.Bound;
 		bound.center = new Vector2((left + right) / 2.0f, (bottom + top) / 2.0f);
-		bound.size = new Vector2(right - left, top - bottom);
+		bound.size = new Vector3(right - left, top - bottom, 0.2f);
 
 		return 0;
 	}
@@ -1247,16 +1265,12 @@ public static class BuiltinFunctions
 	public static int ObjList(IntPtr l)
 	{
 		var group = LuaDLL.luaL_checkinteger(l, 1);
-		if (LayerMask.LayerToName(group) == null)
+		if (group != -1 && LayerMask.LayerToName(group) == null)
 		{
 			group = -1;
 		}
 		var e = Game.GameInstance.GetObjects().Where(o => group == -1 || o.Group == group);
 		var iterator = e.GetEnumerator();
-		if (!iterator.MoveNext())
-		{
-			return 0;
-		}
 		
 		LuaDLL.lua_pushcclosure(l, l_ =>
 		{
@@ -1272,19 +1286,24 @@ public static class BuiltinFunctions
 						return 2;
 					}
 				}
-				else
-				{
-					iterator.Dispose();
-					iterator = null;
-				}
+
+				iterator.Dispose();
+				iterator = null;
 			}
 			
 			return 0;
 		}, 0);
 		LuaDLL.lua_pushinteger(l, group);
-		System.Diagnostics.Debug.Assert(iterator.Current != null, "iterator.Current != null");
-		LuaDLL.lua_pushinteger(l, iterator.Current.Id);
-
+		if (!iterator.MoveNext())
+		{
+			LuaDLL.lua_pushinteger(l, -1);
+		}
+		else
+		{
+			System.Diagnostics.Debug.Assert(iterator.Current != null, "iterator.Current != null");
+			LuaDLL.lua_pushinteger(l, iterator.Current.Id);
+		}
+		
 		return 3;
 	}
 
@@ -1438,6 +1457,26 @@ public static class BuiltinFunctions
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetImageCenter(IntPtr l)
+	{
+		string image;
+		LuaObject.checkType(l, 1, out image);
+		if (string.IsNullOrEmpty(image))
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'SetImageCenter'");
+		}
+		var sprite = Game.GameInstance.ResourceManager.FindResourceAs<ResSprite>(image, autoLoad: false);
+		if (sprite == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'SetImageCenter'");
+		}
+
+		// TODO
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int SetAnimationState(IntPtr l)
 	{
 		// TODO
@@ -1514,30 +1553,26 @@ public static class BuiltinFunctions
 [CustomLuaClass]
 public sealed class Rand
 {
-	private Random.State _state;
+	private Random _rand;
 
 	public void Seed(int seed)
 	{
-		Random.InitState(seed);
-		_state = Random.state;
+		_rand = new Random(seed);
 	}
 
 	public int Int(int a, int b)
 	{
-		Random.state = _state;
-		return Random.Range(a, b);
+		return _rand.Next(a, b + 1);
 	}
 
 	public float Float(float a, float b)
 	{
-		Random.state = _state;
-		return Random.Range(a, b);
+		return (b - a) * (float) _rand.NextDouble() + a;
 	}
 
 	public int Sign()
 	{
-		Random.state = _state;
-		return Random.Range(0, 1) * 2 - 1;
+		return _rand.Next(0, 2) * 2 - 1;
 	}
 
 	public override string ToString()

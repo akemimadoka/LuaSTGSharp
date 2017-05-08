@@ -56,6 +56,8 @@ public class Game : MonoBehaviour
 
 	public JsonUI GlobalUI;
 
+	public KeyCode LastKey { get; private set; }
+
 	private class GameLogHandler
 		: ILogHandler, IDisposable
 	{
@@ -310,6 +312,14 @@ public class Game : MonoBehaviour
 		}
 
 		_renderFunc.call();
+	}
+
+	public void OnGUI()
+	{
+		if (Input.anyKeyDown)
+		{
+			LastKey = Event.current.keyCode;
+		}
 	}
 
 	public void OnApplicationQuit()

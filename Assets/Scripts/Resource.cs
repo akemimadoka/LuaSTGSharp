@@ -18,7 +18,7 @@ public enum BlendMode
 	MulAlpha,
 	MulSub,
 	MulRev
-};
+}
 
 /// <summary>
 ///     资源抽象基类
