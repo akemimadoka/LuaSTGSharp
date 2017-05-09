@@ -20,11 +20,19 @@
 		},
 	"testedit2":
 		{
-			"type" : "edit",
+			"type" : "text",
 			"x" : 120,
 			"y" : 25,
-			"width" : 100,
-			"height" : 20,
+			"width" : -1,
+			"height" : -1,
+			"caption" : 
+			"# do
+				local str = '';
+				for k,v in pairs(KeyState) do
+					str = str..k..':'..tostring(v)..', ';
+				end
+				return str;
+			end"
 		},
 	"testimage" :
 		{

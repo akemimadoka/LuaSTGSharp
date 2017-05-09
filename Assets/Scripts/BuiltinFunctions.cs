@@ -1011,6 +1011,13 @@ public static class BuiltinFunctions
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetImageScale(IntPtr l)
+	{
+		Game.GameInstance.GlobalImageScaleFactor = (float) LuaDLL.luaL_checknumber(l, 1);
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int GetAttr(IntPtr l)
 	{
 		LuaDLL.lua_rawgeti(l, 1, 2);
@@ -1206,6 +1213,8 @@ public static class BuiltinFunctions
 							return LuaDLL.luaL_error(l, "invalid img");
 						}
 						obj.RenderResource = Game.GameInstance.ResourceManager.FindResource(resName);
+						obj.transform.localScale = new Vector3(Game.GameInstance.GlobalImageScaleFactor,
+							Game.GameInstance.GlobalImageScaleFactor, Game.GameInstance.GlobalImageScaleFactor);
 					}
 						break;
 					default:
@@ -1385,6 +1394,14 @@ public static class BuiltinFunctions
 			(float) LuaDLL.luaL_checknumber(l, 2),
 			(float) LuaDLL.luaL_checknumber(l, 3),
 			(float) LuaDLL.luaL_checknumber(l, 4));
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int SetFog(IntPtr l)
+	{
+		// TODO
 
 		return 0;
 	}

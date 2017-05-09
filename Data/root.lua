@@ -49,7 +49,7 @@ function stage_init:init()
 	--
 	New(mask_fader,'open')
 	--
-	menu_title=New(simple_menu,'',{
+	--[[menu_title=New(simple_menu,'',{
 		{'Start Game',function() save_setting()
 				if lfs.attributes('.\\LuaSTGPlus.dev.exe')~=nil then
                     Execute("LuaSTGPlus.dev.exe","start_game=true")
@@ -62,37 +62,37 @@ function stage_init:init()
 		{'Other Settings',function() menu.FlyIn(menu_other,'right') menu.FlyOut(menu_title,'left') menu_other.pos=1 end},
 		{'Exit Launcher',ExitGame},
 		{'exit',function() if menu_title.pos==5 then ExitGame() else menu_title.pos=5 end end},
-	})
+	})]]
 	--
-	menu_name=New(name_set_menu)
+	--menu_name=New(name_set_menu)
 	--
-	menu_key=New(key_setting_menu,'Key Settings',{
-		{'Up',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'Down',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'Left',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'Right',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'Slow',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'Shoot',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'Spell',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'Special',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'RepFast',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'RepSlow',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'Menu',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'SnapShot',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
-		{'Default',function() setting_keys_default() end},
-		{'Return To Title',function() menu.FlyIn(menu_title,'left') menu.FlyOut(menu_key,'right') save_setting() end},
-		{'exit',function()
-			if menu_key.pos~=14 then
-				menu_key.pos=14
-			else
-				menu.FlyIn(menu_title,'left')
-				menu.FlyOut(menu_key,'right')
-				save_setting()
-			end
-		end},
-	})
+	--menu_key=New(key_setting_menu,'Key Settings',{
+	--	{'Up',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'Down',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'Left',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'Right',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'Slow',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'Shoot',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'Spell',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'Special',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'RepFast',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'RepSlow',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'Menu',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'SnapShot',function() menu_key.edit=true menu_key.setting_backup=cur_setting[setting_item[menu_key.pos]] end},
+	--	{'Default',function() setting_keys_default() end},
+	--	{'Return To Title',function() menu.FlyIn(menu_title,'left') menu.FlyOut(menu_key,'right') save_setting() end},
+	--	{'exit',function()
+	--		if menu_key.pos~=14 then
+	--			menu_key.pos=14
+	--		else
+	--			menu.FlyIn(menu_title,'left')
+	--			menu.FlyOut(menu_key,'right')
+	--			save_setting()
+	--		end
+	--	end},
+	--})
 	--
-	menu_other=New(other_setting_menu,'Other Settings',{
+	--[[menu_other=New(other_setting_menu,'Other Settings',{
 		{'Resolution',function() end},
 		{'Windowed',function() cur_setting.windowed=not cur_setting.windowed end},
 		{'Vsync',function() cur_setting.vsync=not cur_setting.vsync end},
@@ -111,7 +111,7 @@ function stage_init:init()
 		end},
 	})
 	--
-	menu.FlyIn(menu_title,'right')
+	menu.FlyIn(menu_title,'right')]]
 end
 function stage_init:render()
 	ui.DrawMenuBG()

@@ -475,22 +475,22 @@ end
 function SetViewMode(mode)
 	lstg.viewmode=mode
 	if mode=='3d' then
-		SetViewport(lstg.world.scrl*screen.scale+screen.dx,lstg.world.scrr*screen.scale+screen.dx,lstg.world.scrb*screen.scale+screen.dy,lstg.world.scrt*screen.scale+screen.dy)
-		SetPerspective(lstg.view3d.eye[1],lstg.view3d.eye[2],lstg.view3d.eye[3],
+		--SetViewport(lstg.world.scrl*screen.scale+screen.dx,lstg.world.scrr*screen.scale+screen.dx,lstg.world.scrb*screen.scale+screen.dy,lstg.world.scrt*screen.scale+screen.dy)
+		--[[SetPerspective(lstg.view3d.eye[1],lstg.view3d.eye[2],lstg.view3d.eye[3],
 					   lstg.view3d.at[1],lstg.view3d.at[2],lstg.view3d.at[3],
 					   lstg.view3d.up[1],lstg.view3d.up[2],lstg.view3d.up[3],
 					   lstg.view3d.fovy,(lstg.world.r-lstg.world.l)/(lstg.world.t-lstg.world.b),
-					   lstg.view3d.z[1],lstg.view3d.z[2])
-		SetFog(lstg.view3d.fog[1],lstg.view3d.fog[2],lstg.view3d.fog[3])
+					   lstg.view3d.z[1],lstg.view3d.z[2])]]
+		--SetFog(lstg.view3d.fog[1],lstg.view3d.fog[2],lstg.view3d.fog[3])
 		SetImageScale(((((lstg.view3d.eye[1]-lstg.view3d.at[1])^2+(lstg.view3d.eye[2]-lstg.view3d.at[2])^2+(lstg.view3d.eye[3]-lstg.view3d.at[3])^2)^0.5)*2*math.tan(lstg.view3d.fovy*0.5))/(lstg.world.scrr-lstg.world.scrl))
 	elseif mode=='world' then
-		SetViewport(lstg.world.scrl*screen.scale+screen.dx,lstg.world.scrr*screen.scale+screen.dx,lstg.world.scrb*screen.scale+screen.dy,lstg.world.scrt*screen.scale+screen.dy)
-		SetOrtho(lstg.world.l,lstg.world.r,lstg.world.b,lstg.world.t)
+		--SetViewport(lstg.world.scrl*screen.scale+screen.dx,lstg.world.scrr*screen.scale+screen.dx,lstg.world.scrb*screen.scale+screen.dy,lstg.world.scrt*screen.scale+screen.dy)
+		--SetOrtho(lstg.world.l,lstg.world.r,lstg.world.b,lstg.world.t)
 		SetFog()
 		SetImageScale((lstg.world.r-lstg.world.l)/(lstg.world.scrr-lstg.world.scrl))
 	elseif mode=='ui' then
-		SetOrtho(0.5,screen.width+0.5,-0.5,screen.height-0.5)
-		SetViewport(screen.dx,screen.width*screen.scale+screen.dx,screen.dy,screen.height*screen.scale+screen.dy)
+		--SetOrtho(0.5,screen.width+0.5,-0.5,screen.height-0.5)
+		--SetViewport(screen.dx,screen.width*screen.scale+screen.dx,screen.dy,screen.height*screen.scale+screen.dy)
 		SetFog()
 		SetImageScale(1)
 	else error('Invalid arguement.') end
@@ -575,7 +575,61 @@ end
 
 Bar=Class(object)
 
+function DoFrame(frame,render)
+	--SetTitle(setting.mod..' | FPS='..GetFPS()..' | Number of Objects='..GetnObj())
+	if frame then
+		--UpdateObjList()
+		GetInput()
+		if stage.next_stage then
+			stage.current_stage=stage.next_stage
+			stage.next_stage=nil
+			stage.current_stage.timer=0
+			stage.current_stage:init()
+		end
+		task.Do(stage.current_stage)
+		stage.current_stage:frame()
+		stage.current_stage.timer=stage.current_stage.timer+1
+		--ObjFrame()
+		UserSystemOperation()  --用于lua层模拟内核级操作
+		--BoundCheck()
+		--CollisionCheck(GROUP_PLAYER,GROUP_ENEMY_BULLET)
+		--CollisionCheck(GROUP_PLAYER,GROUP_ENEMY)
+		--CollisionCheck(GROUP_PLAYER,GROUP_INDES)
+		--CollisionCheck(GROUP_ENEMY,GROUP_PLAYER_BULLET)
+		--CollisionCheck(GROUP_NONTJT,GROUP_PLAYER_BULLET)
+		--CollisionCheck(GROUP_ITEM,GROUP_PLAYER)
+		--UpdateXY()
+	end
+	--UpdateSound()
+	if frame then
+		--AfterFrame()
+		if stage.next_stage and stage.current_stage then
+			stage.current_stage:del()
+			task.Clear(stage.current_stage)
+			if stage.preserve_res then
+				stage.preserve_res=nil
+			else
+				RemoveResource'stage'
+				--ClearMusicRecord()
+			end
+			--ResetPool()
+		end
+	end
+end
+
+function DoRender()
+	if stage.current_stage.timer>1 and stage.next_stage==nil then
+		BeginScene()
+		BeforeRender()
+		stage.current_stage:render()
+		ObjRender()
+		AfterRender()
+		EndScene()
+	end
+end
+
 function FrameFunc()
+	DoFrame(true,true)
 	return lstg.quit_flag;
 end
 
@@ -596,6 +650,11 @@ end
 
 function GameInit()
 	lstg.Print("GameInit");
+
+	SetViewMode'world'
+	--if stage.next_stage==nil then error('Entrance stage not set.') end
+	--SetResourceStatus'stage'
+
 	LoadTexture("undefinedTex", "undefined.png");
 	LoadImage("undefined", "undefinedTex", 0, 0, 128, 128)
 	SetBound(-10, 10, -10, 10);
@@ -628,6 +687,10 @@ function RenderText(name, text, x, y, scale, align, color)
 	align = align or 5;
 	color = color or 0xFFFFFFFF;
 	lstg.GlobalUI[name..text] = { type = "text", caption = text, x = x, y = y, width = -1, height = -1, color = color };
+end
+
+function RenderRect(...)
+	-- TODO
 end
 
 Include 'root.lua'

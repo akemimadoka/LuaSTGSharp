@@ -36,8 +36,8 @@ function DeSerialize(s)
 	return assert(loadstring('return '..s))()
 end
 
-KEY={NULL=0x00}
-
+KEY=UnityEngine.KeyCode;
+--[[
 KEY.LBUTTON=0x01
 KEY.RBUTTON=0x02
 KEY.MBUTTON=0x04
@@ -157,7 +157,7 @@ for i=1,32 do
 	KEY['JOY1_'..i]=0x91+i
 	KEY['JOY2_'..i]=0xDE+i
 end
-
+]]
 CHARSET_ANSI=0
 CHARSET_DEFAULT=1
 CHARSET_SYMBOL=2
@@ -202,20 +202,20 @@ default_setting=
 	bgmvolume=100,
 	lang=1,
 	keys={
-		up=KEY.UP,
-		down=KEY.DOWN,
-		left=KEY.LEFT,
-		right=KEY.RIGHT,
-		slow=KEY.SHIFT,
+		up=KEY.UpArrow,
+		down=KEY.DownArrow,
+		left=KEY.LeftArrow,
+		right=KEY.RightArrow,
+		slow=KEY.LeftShift,
 		shoot=KEY.Z,
 		spell=KEY.X,
-		special=KEY.SPACE,
+		special=KEY.Space,
 	},
 	keysys={
-		repfast=KEY.CTRL,
-		repslow=KEY.SHIFT,
-		menu=KEY.ESCAPE,
-		snapshot=KEY.HOME,
+		repfast=KEY.LeftCommand,
+		repslow=KEY.LeftShift,
+		menu=KEY.Escape,
+		snapshot=KEY.Home,
 	},
 }
 
