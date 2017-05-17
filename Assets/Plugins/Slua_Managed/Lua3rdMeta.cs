@@ -1,11 +1,11 @@
-﻿using System.Collections.Generic;
-using System;
-using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
+using UnityEditor;
 #if !SLUA_STANDALONE
 using UnityEngine;
 #endif
-using System.IO;
 
 namespace SLua{
 
@@ -21,7 +21,7 @@ namespace SLua{
 
 		void OnEnable(){
 			#if !SLUA_STANDALONE
-			this.hideFlags = HideFlags.NotEditable;
+			hideFlags = HideFlags.NotEditable;
 			#endif
 		}
 		#if UNITY_EDITOR
@@ -50,7 +50,7 @@ namespace SLua{
 		}
 
 		#endif
-		private static Lua3rdMeta _instance=null;
+		private static Lua3rdMeta _instance;
 		public static Lua3rdMeta Instance{
 			get{
 				#if !SLUA_STANDALONE
@@ -60,12 +60,12 @@ namespace SLua{
 
 				#if UNITY_EDITOR
 				if(_instance == null){
-					_instance = ScriptableObject.CreateInstance<Lua3rdMeta>();
+					_instance = CreateInstance<Lua3rdMeta>();
 					string path = "Assets/Slua/Meta/Resources";
 					if(!Directory.Exists(path)){
 						Directory.CreateDirectory(path);
 					}
-					UnityEditor.AssetDatabase.CreateAsset(_instance,Path.Combine(path,"lua3rdmeta.asset"));
+					AssetDatabase.CreateAsset(_instance,Path.Combine(path,"lua3rdmeta.asset"));
 				}
 
 				#endif

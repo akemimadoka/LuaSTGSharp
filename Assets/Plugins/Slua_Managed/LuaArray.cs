@@ -21,16 +21,13 @@
 // THE SOFTWARE.
 
 
+using System;
+using System.Collections.Generic;
+
 namespace SLua
 {
 #if !SLUA_STANDALONE
-	using UnityEngine;
 #endif
-	using System.Collections;
-	using System.Collections.Generic;
-	using System;
-	using System.Reflection;
-	using System.Runtime.InteropServices;
 
 	class LuaArray : LuaObject
 	{
@@ -59,7 +56,7 @@ namespace SLua
 			return 1;
 		}
 
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int len(IntPtr l)
 		{
 			Array a = (Array)checkSelf(l);
@@ -70,7 +67,7 @@ namespace SLua
 		delegate int ArrayPropFunction(IntPtr l, Array a);
 
 		static Dictionary<string, ArrayPropFunction> propMethod = new Dictionary<string, ArrayPropFunction>();
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int luaIndex(IntPtr l)
 		{
 			try
@@ -86,18 +83,14 @@ namespace SLua
 						pushValue(l, true);
 						return fun(l, a) + 1;
 					}
-					else
-						throw new Exception("Can't find property named " + mn);
+					throw new Exception("Can't find property named " + mn);
 				}
-				else
-				{
-					int i;
-					checkType(l, 2, out i);
-					assert(i>0,"index base 1");
-					pushValue(l, true);
-					pushVar(l, a.GetValue(i-1));
-					return 2;
-				}	
+				int i;
+				checkType(l, 2, out i);
+				assert(i>0,"index base 1");
+				pushValue(l, true);
+				pushVar(l, a.GetValue(i-1));
+				return 2;
 			}
 			catch (Exception e)
 			{
@@ -105,7 +98,7 @@ namespace SLua
 			}
 		}
 
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int luaNewIndex(IntPtr l)
 		{
 			try
@@ -125,7 +118,7 @@ namespace SLua
 			}
 		}
 
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int tostring(IntPtr l)
 		{
 			Array a = (Array)checkSelf(l);

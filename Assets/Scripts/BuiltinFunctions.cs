@@ -118,8 +118,16 @@ public static class BuiltinFunctions
 			LuaDLL.lua_rawgeti(l, 1, 2);  // t(object) t(object) ??? id
 			LuaDLL.lua_rawgeti(l, 2, 2);  // t(object) t(object) ??? id id
 
-			var obj1Pos = Game.GameInstance.GetObject(LuaDLL.luaL_checkinteger(l, -2)).CurrentPosition;
-			var obj2Pos = Game.GameInstance.GetObject(LuaDLL.luaL_checkinteger(l, -1)).CurrentPosition;
+			var obj1 = Game.GameInstance.GetObject(LuaDLL.luaL_checkinteger(l, -2));
+			var obj2 = Game.GameInstance.GetObject(LuaDLL.luaL_checkinteger(l, -1));
+
+			if (obj1 == null || obj2 == null)
+			{
+				return LuaDLL.luaL_error(l, "invalid lstg object for 'Angle'.");
+			}
+
+			var obj1Pos = obj1.CurrentPosition;
+			var obj2Pos = obj2.CurrentPosition;
 
 			x = obj2Pos.x - obj1Pos.x;
 			y = obj2Pos.y - obj1Pos.y;
@@ -375,6 +383,20 @@ public static class BuiltinFunctions
 		}
 
 		LuaDLL.lua_pushinteger(l, LayerMask.NameToLayer(layerName));
+		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int GetSortingLayerId(IntPtr l)
+	{
+		string layerName;
+		LuaObject.checkType(l, 1, out layerName);
+		if (string.IsNullOrEmpty(layerName))
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'GetSortingLayerId'");
+		}
+
+		LuaDLL.lua_pushinteger(l, SortingLayer.NameToID(layerName));
 		return 1;
 	}
 
@@ -878,6 +900,129 @@ public static class BuiltinFunctions
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int ParticleFire(IntPtr l)
+	{
+		if (!LuaDLL.lua_istable(l, 1))
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleFire'.");
+		LuaDLL.lua_rawgeti(l, 1, 2);
+		
+		var obj = Game.GameInstance.GetObject(LuaDLL.luaL_checkinteger(l, -1));
+		if (obj == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleFire'.");
+		}
+
+		var particleSys = obj.GetComponent<ParticleSystem>();
+		if (particleSys)
+		{
+			particleSys.Play();
+		}
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int ParticleStop(IntPtr l)
+	{
+		if (!LuaDLL.lua_istable(l, 1))
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleStop'.");
+		LuaDLL.lua_rawgeti(l, 1, 2);
+
+		var obj = Game.GameInstance.GetObject(LuaDLL.luaL_checkinteger(l, -1));
+		if (obj == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleStop'.");
+		}
+
+		var particleSys = obj.GetComponent<ParticleSystem>();
+		if (particleSys)
+		{
+			particleSys.Stop();
+		}
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int ParticleGetn(IntPtr l)
+	{
+		if (!LuaDLL.lua_istable(l, 1))
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleGetn'.");
+		LuaDLL.lua_rawgeti(l, 1, 2);
+
+		var obj = Game.GameInstance.GetObject(LuaDLL.luaL_checkinteger(l, -1));
+		if (obj == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleGetn'.");
+		}
+
+		var particleSys = obj.GetComponent<ParticleSystem>();
+		if (particleSys)
+		{
+			LuaDLL.lua_pushinteger(l, particleSys.particleCount);
+		}
+		else
+		{
+			return LuaDLL.luaL_error(l, "no particle system in this lstg object.");
+		}
+
+		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int ParticleGetEmission(IntPtr l)
+	{
+		if (!LuaDLL.lua_istable(l, 1))
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleGetEmission'.");
+		LuaDLL.lua_rawgeti(l, 1, 2);
+
+		var obj = Game.GameInstance.GetObject(LuaDLL.luaL_checkinteger(l, -1));
+		if (obj == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleGetEmission'.");
+		}
+
+		var particleSys = obj.GetComponent<ParticleSystem>();
+		if (particleSys)
+		{
+			LuaDLL.lua_pushnumber(l, particleSys.emission.rateOverTime.constant);
+		}
+		else
+		{
+			return LuaDLL.luaL_error(l, "no particle system in this lstg object.");
+		}
+
+		return 1;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int ParticleSetEmission(IntPtr l)
+	{
+		if (!LuaDLL.lua_istable(l, 1))
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleSetEmission'.");
+		LuaDLL.lua_rawgeti(l, 1, 2);
+
+		var obj = Game.GameInstance.GetObject(LuaDLL.luaL_checkinteger(l, -1));
+		if (obj == null)
+		{
+			return LuaDLL.luaL_error(l, "invalid lstg object for 'ParticleSetEmission'.");
+		}
+
+		var particleSys = obj.GetComponent<ParticleSystem>();
+		if (particleSys)
+		{
+			var emission = particleSys.emission;
+			emission.rateOverTime = new ParticleSystem.MinMaxCurve((float) LuaDLL.luaL_checknumber(l, 2));
+		}
+		else
+		{
+			return LuaDLL.luaL_error(l, "no particle system in this lstg object.");
+		}
+
+		return 0;
+	}
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int LoadAudio(IntPtr l)
 	{
 		return 0;
@@ -1070,6 +1215,9 @@ public static class BuiltinFunctions
 			{
 				switch (key)
 				{
+					case "id":
+						LuaObject.pushValue(l, obj.Id);
+						break;
 					case "a":
 						LuaObject.pushValue(l, obj.Ab.x);
 						break;
@@ -1278,7 +1426,8 @@ public static class BuiltinFunctions
 		{
 			group = -1;
 		}
-		var e = Game.GameInstance.GetObjects().Where(o => group == -1 || o.Group == group);
+		var list = Game.GameInstance.GetObjects().Where(o => group == -1 || o.Group == group).ToList();
+		var e = (IEnumerable<LSTGObject>) list;
 		var iterator = e.GetEnumerator();
 		
 		LuaDLL.lua_pushcclosure(l, l_ =>
@@ -1302,7 +1451,7 @@ public static class BuiltinFunctions
 			
 			return 0;
 		}, 0);
-		LuaDLL.lua_pushinteger(l, group);
+		/*LuaDLL.lua_pushinteger(l, group);
 		if (!iterator.MoveNext())
 		{
 			LuaDLL.lua_pushinteger(l, -1);
@@ -1311,9 +1460,9 @@ public static class BuiltinFunctions
 		{
 			System.Diagnostics.Debug.Assert(iterator.Current != null, "iterator.Current != null");
 			LuaDLL.lua_pushinteger(l, iterator.Current.Id);
-		}
+		}*/
 		
-		return 3;
+		return 1;
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
@@ -1359,7 +1508,10 @@ public static class BuiltinFunctions
 		LuaDLL.lua_pop(l, 1);
 
 		var obj = Game.GameInstance.GetObject(id);
-		obj.DelSelf();
+		if (obj != null)
+		{
+			obj.DelSelf();
+		}
 
 		return 0;
 	}
@@ -1372,7 +1524,10 @@ public static class BuiltinFunctions
 		LuaDLL.lua_pop(l, 1);
 
 		var obj = Game.GameInstance.GetObject(id);
-		obj.KillSelf();
+		if (obj != null)
+		{
+			obj.KillSelf();
+		}
 
 		return 0;
 	}
@@ -1381,19 +1536,34 @@ public static class BuiltinFunctions
 	public static int IsValid(IntPtr l)
 	{
 		var argc = LuaDLL.lua_gettop(l);
-		LuaDLL.lua_pushboolean(l, (from i in Enumerable.Range(1, argc)
-								   select Game.GameInstance.GetObject(i) != null).All(v => v));
+		LuaDLL.lua_pushboolean(l, Enumerable.Range(1, argc).Select(i =>
+		{
+			if (!LuaDLL.lua_istable(l, i))
+			{
+				return false;
+			}
+			LuaDLL.lua_rawgeti(l, i, 2);
+			if (!LuaDLL.lua_isnumber(l, -1))
+			{
+				return false;
+			}
+			var id = LuaDLL.lua_tointeger(l, -1);
+			LuaDLL.lua_pop(l, 1);
+			return Game.GameInstance.GetObject(id) != null;
+		}).All(v => v));
+		
 		return 1;
 	}
 
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int SetViewport(IntPtr l)
 	{
-		Camera.main.rect = new Rect(
-			(float) LuaDLL.luaL_checknumber(l, 1),
-			(float) LuaDLL.luaL_checknumber(l, 2),
-			(float) LuaDLL.luaL_checknumber(l, 3),
-			(float) LuaDLL.luaL_checknumber(l, 4));
+		var left = (float) LuaDLL.luaL_checknumber(l, 1);
+		var right = (float) LuaDLL.luaL_checknumber(l, 2);
+		var bottom = (float) LuaDLL.luaL_checknumber(l, 3);
+		var top = (float) LuaDLL.luaL_checknumber(l, 4);
+
+		Camera.main.rect = new Rect(left, bottom, right - left, top - bottom);
 
 		return 0;
 	}
@@ -1401,7 +1571,23 @@ public static class BuiltinFunctions
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int SetFog(IntPtr l)
 	{
-		// TODO
+		if (LuaDLL.lua_gettop(l) == 0)
+		{
+			RenderSettings.fog = false;
+		}
+		else
+		{
+			RenderSettings.fog = true;
+			RenderSettings.fogStartDistance = (float) LuaDLL.luaL_checknumber(l, 1);
+			RenderSettings.fogEndDistance = (float) LuaDLL.luaL_checknumber(l, 2);
+
+			Color color;
+			if (LuaDLL.lua_gettop(l) <= 2 || !LuaObject.checkType(l, 3, out color))
+			{
+				color = Color.white;
+			}
+			RenderSettings.fogColor = color;
+		}
 
 		return 0;
 	}
@@ -1487,7 +1673,7 @@ public static class BuiltinFunctions
 		{
 			return LuaDLL.luaL_error(l, "invalid argument for 'SetImageCenter'");
 		}
-
+		
 		// TODO
 
 		return 0;
@@ -1498,6 +1684,27 @@ public static class BuiltinFunctions
 	{
 		// TODO
 
+		return 0;
+	}
+
+	/*[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int Render(IntPtr l)
+	{
+		string textureName;
+		LuaObject.checkType(l, 1, out textureName);
+		if (string.IsNullOrEmpty(textureName))
+		{
+			return LuaDLL.luaL_error(l, "invalid argument for 'Render'");
+		}
+
+
+
+		return 0;
+	}*/
+
+	[MonoPInvokeCallback(typeof(LuaCSFunction))]
+	public static int DebugHint(IntPtr l)
+	{
 		return 0;
 	}
 
@@ -1548,7 +1755,7 @@ public static class BuiltinFunctions
 
 	public static void InitMetaTable(IntPtr l)
 	{
-		LuaDLL.lua_pushlightuserdata(l, l);
+		LuaDLL.lua_pushlightuserdata(l, Game.GameInstance.LuaVM.luaState.L);
 		LuaDLL.lua_createtable(l, Game.MaxObjectCount, 0);
 
 		LuaDLL.lua_newtable(l);

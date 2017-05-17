@@ -97,6 +97,7 @@
     <Compile Include="Assets\Scripts\Game.cs" />
     <Compile Include="Assets\Scripts\JsonUI.cs" />
     <Compile Include="Assets\Scripts\LSTGObject.cs" />
+    <Compile Include="Assets\Scripts\LSTGObjectEditor.cs" />
     <Compile Include="Assets\Scripts\Misc.cs" />
     <Compile Include="Assets\Scripts\Particle.cs" />
     <Compile Include="Assets\Scripts\Resource.cs" />

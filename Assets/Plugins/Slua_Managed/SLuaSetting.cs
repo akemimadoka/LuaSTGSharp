@@ -20,7 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System.Collections;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -33,14 +32,14 @@ namespace SLua{
 		Native,
 		CRLF,
 		CR,
-		LF,
+		LF
 	}
 
 	public class SLuaSetting 
 #if !SLUA_STANDALONE
-        : ScriptableObject
+		: ScriptableObject
 #endif
-    {
+	{
 
 		public EOL eol = EOL.Native;
 		public bool exportExtensionMethod = true;
@@ -49,7 +48,7 @@ namespace SLua{
 		// public int debugPort=10240;
 		// public string debugIP="0.0.0.0"; // no longer debugger built-in
 
-		private static SLuaSetting _instance=null;
+		private static SLuaSetting _instance;
 		public static SLuaSetting Instance{
 			get{
 #if !SLUA_STANDALONE
@@ -58,7 +57,7 @@ namespace SLua{
 
 #if UNITY_EDITOR
 					if(_instance == null){
-						_instance =  SLuaSetting.CreateInstance<SLuaSetting>();
+						_instance =  CreateInstance<SLuaSetting>();
 						AssetDatabase.CreateAsset(_instance,"Assets/Slua/Resources/setting.asset");
 					}
 #endif

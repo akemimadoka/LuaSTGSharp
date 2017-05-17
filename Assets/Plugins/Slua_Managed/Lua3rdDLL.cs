@@ -1,10 +1,8 @@
-using System.Collections.Generic;
 using System;
-using System.IO;
-using System.Linq;
+using System.Collections.Generic;
 using System.Reflection;
 #if !SLUA_STANDALONE
-using UnityEngine;
+
 #endif
 
 namespace SLua{
@@ -30,7 +28,7 @@ namespace SLua{
 					var type = assembly.GetType(typename);
 					var methods = type.GetMethods(BindingFlags.Static|BindingFlags.Public);
 					foreach(var method in methods){
-						var attr = System.Attribute.GetCustomAttribute(method,typeof(LualibRegAttribute)) as LualibRegAttribute;
+						var attr = Attribute.GetCustomAttribute(method,typeof(LualibRegAttribute)) as LualibRegAttribute;
 						if(attr != null){
 							var csfunc = Delegate.CreateDelegate(typeof(LuaCSFunction),method) as LuaCSFunction;
 							DLLRegFuncs.Add(attr.luaName,csfunc);
@@ -55,7 +53,7 @@ namespace SLua{
 
 
 		[AttributeUsage(AttributeTargets.Method)]
-		public class LualibRegAttribute:System.Attribute{
+		public class LualibRegAttribute:Attribute{
 
 			public string luaName;
 			public LualibRegAttribute(string luaName){

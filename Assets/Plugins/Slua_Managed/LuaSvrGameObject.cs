@@ -20,17 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+using System;
+using UnityEngine;
+
 #if !SLUA_STANDALONE
 namespace SLua
 {
-	using UnityEngine;
-	using System.Collections;
-	using SLua;
-	using System;
-	using System.Net;
-	using System.Net.Sockets;
-	using System.IO;
-
 	public class LuaSvrGameObject : MonoBehaviour
 	{
 

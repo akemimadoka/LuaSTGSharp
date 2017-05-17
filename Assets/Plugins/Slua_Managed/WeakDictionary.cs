@@ -21,12 +21,11 @@
 // THE SOFTWARE.
 
 
+using System;
+using System.Collections.Generic;
 
 namespace SLua
 {
-	using System;
-	using System.Collections.Generic;
-
 	public class WeakDictionary<K, V>
 	{
 		Dictionary<K, WeakReference> _dict = new Dictionary<K, WeakReference>();

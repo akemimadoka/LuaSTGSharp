@@ -20,11 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System.Collections;
-using System.Collections.Generic;
 using System;
 using System.Reflection;
-using System.Runtime.InteropServices;
+
 namespace SLua
 {
 
@@ -71,7 +69,7 @@ namespace SLua
 #region enum
 		public static bool checkEnum<T>(IntPtr l, int p, out T o) where T : struct
 		{
-			int i = (int) LuaDLL.luaL_checkinteger (l, p);
+			int i = LuaDLL.luaL_checkinteger (l, p);
 			o = (T)Enum.ToObject(typeof(T), i);
 
 			return true;
@@ -155,21 +153,21 @@ namespace SLua
 			v = (ushort)LuaDLL.luaL_checkinteger(l, p);
 			return true;
 		}
-                
+				
 		public static void pushValue(IntPtr l, ushort v)
 		{
-		    LuaDLL.lua_pushinteger(l, v);
+			LuaDLL.lua_pushinteger(l, v);
 		}
-               
+			   
 		#endregion
 
 		#region int
 		public static bool checkType(IntPtr l, int p, out int v)
 		{
-			v = (int)LuaDLL.luaL_checkinteger(l, p);
+			v = LuaDLL.luaL_checkinteger(l, p);
 			return true;
 		}
-                
+				
 		public static void pushValue(IntPtr l, int i)
 		{
 			LuaDLL.lua_pushinteger(l, i);
@@ -194,7 +192,7 @@ namespace SLua
 		public static bool checkType(IntPtr l, int p, out long v)
 		{
 #if LUA_5_3
-            v = (long)LuaDLL.luaL_checkinteger(l, p);
+			v = (long)LuaDLL.luaL_checkinteger(l, p);
 #else
 			v = (long)LuaDLL.luaL_checknumber(l, p);
 #endif
@@ -204,7 +202,7 @@ namespace SLua
 		public static void pushValue(IntPtr l, long i)
 		{
 #if LUA_5_3
-            LuaDLL.lua_pushinteger(l,i);
+			LuaDLL.lua_pushinteger(l,i);
 #else
 			LuaDLL.lua_pushnumber(l, i);
 #endif
@@ -372,7 +370,7 @@ namespace SLua
 			return true;
 		}
 
-        public static bool checkType(IntPtr l, int p, out LuaFunction f)
+		public static bool checkType(IntPtr l, int p, out LuaFunction f)
 		{
 			if (LuaDLL.lua_isnil(l, p))
 			{
@@ -425,18 +423,15 @@ namespace SLua
 			{
 				return t;
 			}
-			else
+			Assembly[] Assemblies = AppDomain.CurrentDomain.GetAssemblies();
+			for (int n = 0; n < Assemblies.Length;n++ )
 			{
-				Assembly[] Assemblies = AppDomain.CurrentDomain.GetAssemblies();
-				for (int n = 0; n < Assemblies.Length;n++ )
-				{
-					Assembly asm = Assemblies[n];
-					t = asm.GetType(qualifiedTypeName);
-					if (t != null)
-						return t;
-				}
-				return null;
+				Assembly asm = Assemblies[n];
+				t = asm.GetType(qualifiedTypeName);
+				if (t != null)
+					return t;
 			}
+			return null;
 		}
 
 
@@ -444,47 +439,47 @@ namespace SLua
 		{
 			string tname = null;
 			LuaTypes lt = LuaDLL.lua_type(l, p);
-            switch (lt)
-            {
-                case LuaTypes.LUA_TUSERDATA:
-                    object o = checkObj(l, p);
-                    if (o.GetType() != MonoType)
-                        throw new Exception(string.Format("{0} expect Type, got {1}", p, o.GetType().Name));
-                    t = (Type)o;
+			switch (lt)
+			{
+				case LuaTypes.LUA_TUSERDATA:
+					object o = checkObj(l, p);
+					if (o.GetType() != MonoType)
+						throw new Exception(string.Format("{0} expect Type, got {1}", p, o.GetType().Name));
+					t = (Type)o;
 					return true;
-                case LuaTypes.LUA_TTABLE:
-                    LuaDLL.lua_pushstring(l, "__type");
-                    LuaDLL.lua_rawget(l, p);
-                    if (!LuaDLL.lua_isnil(l, -1))
-                    {
-                        t = (Type)checkObj(l, -1);
-                        LuaDLL.lua_pop(l, 1);
-                        return true;
-                    }
-                    else
-                    {
-                        LuaDLL.lua_pushstring(l, "__fullname");
-                        LuaDLL.lua_rawget(l, p);
-                        tname = LuaDLL.lua_tostring(l, -1);
-                        LuaDLL.lua_pop(l, 2);
-                    }
-                    break;
+				case LuaTypes.LUA_TTABLE:
+					LuaDLL.lua_pushstring(l, "__type");
+					LuaDLL.lua_rawget(l, p);
+					if (!LuaDLL.lua_isnil(l, -1))
+					{
+						t = (Type)checkObj(l, -1);
+						LuaDLL.lua_pop(l, 1);
+						return true;
+					}
+					else
+					{
+						LuaDLL.lua_pushstring(l, "__fullname");
+						LuaDLL.lua_rawget(l, p);
+						tname = LuaDLL.lua_tostring(l, -1);
+						LuaDLL.lua_pop(l, 2);
+					}
+					break;
 
-                case LuaTypes.LUA_TSTRING:
-                    checkType(l, p, out tname);
-                    break;
-            }
+				case LuaTypes.LUA_TSTRING:
+					checkType(l, p, out tname);
+					break;
+			}
 
 			if (tname == null)
 				throw new Exception("expect string or type table");
 
-			t = LuaObject.FindType(tname);
-            if (t != null && lt==LuaTypes.LUA_TTABLE)
-            {
-                LuaDLL.lua_pushstring(l, "__type");
+			t = FindType(tname);
+			if (t != null && lt==LuaTypes.LUA_TTABLE)
+			{
+				LuaDLL.lua_pushstring(l, "__type");
 				pushLightObject(l, t);
-                LuaDLL.lua_rawset(l, p);
-            }
+				LuaDLL.lua_rawset(l, p);
+			}
 			return t != null;
 		}
 		#endregion
@@ -497,7 +492,7 @@ namespace SLua
 		}
 		#endregion
 
-		public static bool checkNullable<T>(IntPtr l, int p, out Nullable<T> v) where T : struct
+		public static bool checkNullable<T>(IntPtr l, int p, out T? v) where T : struct
 		{
 			if (LuaDLL.lua_isnil(l, p))
 				v = null;
@@ -505,7 +500,7 @@ namespace SLua
 			{
 				object o=checkVar(l, p, typeof(T));
 				if (o == null) v = null;
-				else v = new Nullable<T>((T)o);
+				else v = (T)o;
 			}
 			return true;
 		}

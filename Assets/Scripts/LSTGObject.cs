@@ -88,9 +88,9 @@ public class LSTGObject : MonoBehaviour
 			Vector3 axis;
 			transform.rotation.ToAngleAxis(out angle, out axis);
 			//Debug.Assert(axis == Vector3.back || axis == Vector3.zero);
-			return angle;
+			return (angle - 180f) % 360f;
 		}
-		set { transform.rotation = Quaternion.AngleAxis(value % 360, Vector3.back); }
+		set { transform.rotation = Quaternion.AngleAxis((value + 180f) % 360f, Vector3.back); }
 	}
 
 	[LObjectPropertyAliasAs("omiga")]
@@ -121,7 +121,14 @@ public class LSTGObject : MonoBehaviour
 				return;
 			}
 
-			spriteRenderer.sortingLayerID = value;
+			if (!SortingLayer.IsValid(value))
+			{
+				LuaDLL.luaL_error(Game.GameInstance.LuaVM.luaState.L, "{0} is not a valid sorting layer.", value);
+			}
+			else
+			{
+				spriteRenderer.sortingLayerID = value;
+			}
 		}
 	}
 
@@ -182,8 +189,8 @@ public class LSTGObject : MonoBehaviour
 
 	public Vector2 Scale
 	{
-		get { return transform.localScale; }
-		set { transform.localScale = value; }
+		get { return transform.localScale / Game.GameInstance.GlobalImageScaleFactor; }
+		set { transform.localScale = value * Game.GameInstance.GlobalImageScaleFactor; }
 	}
 
 	public Collider Collider
@@ -252,17 +259,16 @@ public class LSTGObject : MonoBehaviour
 
 	[LObjectPropertyAliasAs("navi")]
 	public bool Navi { get; set; }
-
-	private int _group;
+	
 	[LObjectPropertyAliasAs("group")]
 	public int Group {
 		get
 		{
-			return _group;
+			return gameObject.layer;
 		}
 		set
 		{
-			gameObject.layer = _group = value;
+			gameObject.layer = value;
 		}
 	}
 	[LObjectPropertyAliasAs("timer")]
@@ -348,7 +354,7 @@ public class LSTGObject : MonoBehaviour
 			{
 				particleSys = gameObject.AddComponent<ParticleSystem>();
 			}
-			resParticle.SetParticleSystem(particleSys);
+			resParticle.SetupParticleSystem(particleSys);
 		}
 	}
 
@@ -376,6 +382,7 @@ public class LSTGObject : MonoBehaviour
 		var rigidBody = gameObject.AddComponent<Rigidbody>();
 		rigidBody.isKinematic = true;
 		LastPosition = transform.position;
+		Scale = Vector2.one;
 	}
 
 	// Use this for initialization

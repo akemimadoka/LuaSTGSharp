@@ -20,66 +20,67 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+using System;
+using System.Collections;
+using System.Reflection;
+using Object = UnityEngine.Object;
+
 namespace SLua
 {
-	using System.Collections;
-	using System;
-	using System.Reflection;
-
-    class Helper : LuaObject
+	class Helper : LuaObject
 	{
 
 		static string classfunc = @"
 local getmetatable = getmetatable
 local function Class(base,static,instance)
 
-    local mt = getmetatable(base)
+	local mt = getmetatable(base)
 
-    local class = static or {}
-    setmetatable(class, 
-        {
-            __index = base,
-            __call = function(...)
-                local r = mt.__call(...)
-                local ret = instance or {}
+	local class = static or {}
+	setmetatable(class, 
+		{
+			__index = base,
+			__call = function(...)
+				local r = mt.__call(...)
+				local ret = instance or {}
 
-                local ins_ret = setmetatable(
-                    {
-                        __base = r,
-                    },
+				local ins_ret = setmetatable(
+					{
+						__base = r,
+					},
 
-                    {
-                        __index = function(t, k)
-                            local ret_field
-                            ret_field = ret[k]
-                            if nil == ret_field then
-                                ret_field = r[k]
-                            end
+					{
+						__index = function(t, k)
+							local ret_field
+							ret_field = ret[k]
+							if nil == ret_field then
+								ret_field = r[k]
+							end
 
-                            return ret_field
-                        end,
+							return ret_field
+						end,
 
-                        __newindex = function(t,k,v)
-                            if not pcall(function() r[k]=v end) then
-                                rawset(t,k,v)
-                            end
-                        end,
-                    })
+						__newindex = function(t,k,v)
+							if not pcall(function() r[k]=v end) then
+								rawset(t,k,v)
+							end
+						end,
+					})
 
-                if ret.ctor then
-                    ret.ctor(ins_ret, ...)
-                end
+				if ret.ctor then
+					ret.ctor(ins_ret, ...)
+				end
 
-                return ins_ret
-            end,
-        }
-    )
-    return class
+				return ins_ret
+			end,
+		}
+	)
+	return class
 end
 return Class
 ";
 
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int _iter(IntPtr l)
 		{
 			object obj = checkObj(l, LuaDLL.lua_upvalueindex(1));
@@ -89,15 +90,12 @@ return Class
 				pushVar(l, it.Current);
 				return 1;
 			}
-			else
-			{
-				if (obj is IDisposable)
-					(obj as IDisposable).Dispose();
-			}
+			if (obj is IDisposable)
+				(obj as IDisposable).Dispose();
 			return 0;
 		}
 
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int iter(IntPtr l)
 		{
 			object o = checkObj(l, 1);
@@ -113,43 +111,43 @@ return Class
 			return error(l,"passed in object isn't enumerable");
 		}
 
-        /// <summary>
-        /// Create standard System.Action
-        /// </summary>
-        /// <param name="l"></param>
-        /// <returns></returns>
-        [MonoPInvokeCallbackAttribute(typeof (LuaCSFunction))]
-        public static int CreateAction(IntPtr l)
-        {
-            try
-            {
+		/// <summary>
+		/// Create standard System.Action
+		/// </summary>
+		/// <param name="l"></param>
+		/// <returns></returns>
+		[MonoPInvokeCallback(typeof (LuaCSFunction))]
+		public static int CreateAction(IntPtr l)
+		{
+			try
+			{
 
-                LuaFunction func;
-                checkType(l, 1, out func);
-                var action = new Action(() =>
-                {
-                    func.call();
+				LuaFunction func;
+				checkType(l, 1, out func);
+				var action = new Action(() =>
+				{
+					func.call();
 
-                });
-                pushValue(l, true);
-                pushVar(l, action);
-                return 2;
-            }
-            catch (Exception e)
-            {
-                return error(l, e);
-            }
+				});
+				pushValue(l, true);
+				pushVar(l, action);
+				return 2;
+			}
+			catch (Exception e)
+			{
+				return error(l, e);
+			}
 
-        }
+		}
 
-        [MonoPInvokeCallbackAttribute(typeof (LuaCSFunction))]
+		[MonoPInvokeCallback(typeof (LuaCSFunction))]
 		static public int CreateClass(IntPtr l)
 		{
 			try
 			{
 				string cls;
 				checkType(l, 1, out cls);
-				Type t = LuaObject.FindType(cls);
+				Type t = FindType(cls);
 				if (t == null)
 				{
 					return error(l, string.Format("Can't find {0} to create", cls));
@@ -191,14 +189,14 @@ return Class
 
 
 
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int GetClass(IntPtr l)
 		{
 			try
 			{
 				string cls;
 				checkType(l, 1, out cls);
-				Type t = LuaObject.FindType(cls);
+				Type t = FindType(cls);
 				if (t == null)
 				{
 					return error(l, "Can't find {0} to create", cls);
@@ -206,7 +204,7 @@ return Class
 
 				LuaClassObject co = new LuaClassObject(t);
 				pushValue(l, true);
-				LuaObject.pushObject(l,co);
+				pushObject(l,co);
 				return 2;
 			}
 			catch (Exception e)
@@ -216,21 +214,21 @@ return Class
 		}
 
 		//convert lua binary string to c# byte[]
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int ToBytes(IntPtr l){
 			try{
 				byte[] bytes = null;
 				checkBinaryString(l,1,out bytes);
 				pushValue(l,true);
-				LuaObject.pushObject(l,bytes);
+				pushObject(l,bytes);
 				return 2;
 
-			}catch(System.Exception e){
+			}catch(Exception e){
 				return error(l, e);
 			}
 		}
 
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public new int ToString(IntPtr l)
 		{
 			try
@@ -261,7 +259,7 @@ return Class
 			}
 		}
 
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int MakeArray(IntPtr l)
 		{
 			try
@@ -274,7 +272,7 @@ return Class
 				for (int k = 0; k < n; k++)
 				{
 					LuaDLL.lua_rawgeti(l, 2, k + 1);
-				    var obj = checkVar(l, -1);
+					var obj = checkVar(l, -1);
 					array.SetValue(changeType(obj, t), k);
 					LuaDLL.lua_pop(l, 1);
 				}
@@ -288,7 +286,7 @@ return Class
 			}
 		}
 		
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int As(IntPtr l)
 		{
 			try
@@ -310,9 +308,9 @@ return Class
 			}
 		}
 
-        [MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
-        static public int IsNull(IntPtr l)
-        {
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		static public int IsNull(IntPtr l)
+		{
 			try
 			{
 				LuaTypes t = LuaDLL.lua_type(l, 1);
@@ -327,7 +325,7 @@ return Class
 				{
 					object o = checkObj(l, 1);
 #if !SLUA_STANDALONE
-					var o1 = o as UnityEngine.Object;
+					var o1 = o as Object;
 					if( o1 != null )
 					{
 						pushValue(l, false);
@@ -345,18 +343,18 @@ return Class
 			{
 				return error(l, e);
 			}
-        }
+		}
 
-        static LuaOut luaOut = new LuaOut();
-        [MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
-        static public int get_out(IntPtr l)
-        {
+		static LuaOut luaOut = new LuaOut();
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
+		static public int get_out(IntPtr l)
+		{
 			pushValue(l, true);
-            pushLightObject(l, luaOut);
-            return 2;
-        }
+			pushLightObject(l, luaOut);
+			return 2;
+		}
 
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		static public int get_version(IntPtr l)
 		{
 			pushValue(l, true);
@@ -364,27 +362,27 @@ return Class
 			return 2;
 		}
 
-        static public void reg(IntPtr l)
+		static public void reg(IntPtr l)
 		{
-            getTypeTable(l, "Slua");
-            addMember(l, CreateAction, false);
-            addMember(l, CreateClass, false);
-            addMember(l, GetClass, false);
-            addMember(l, iter, false);
-            addMember(l, ToString, false);
-            addMember(l, As, false);
-            addMember(l, IsNull, false);
-            addMember(l, MakeArray, false);
-            addMember(l, ToBytes, false);
-            addMember(l, "out", get_out, null, false);
-            addMember(l, "version", get_version, null, false);
+			getTypeTable(l, "Slua");
+			addMember(l, CreateAction, false);
+			addMember(l, CreateClass, false);
+			addMember(l, GetClass, false);
+			addMember(l, iter, false);
+			addMember(l, ToString, false);
+			addMember(l, As, false);
+			addMember(l, IsNull, false);
+			addMember(l, MakeArray, false);
+			addMember(l, ToBytes, false);
+			addMember(l, "out", get_out, null, false);
+			addMember(l, "version", get_version, null, false);
 
 			LuaFunction func = LuaState.get(l).doString(classfunc) as LuaFunction;
 			func.push(l);
 			LuaDLL.lua_setfield(l, -3, "Class");
 
 
-            createTypeMetatable(l, null, typeof(Helper));
-        }
-    }
+			createTypeMetatable(l, null, typeof(Helper));
+		}
+	}
 }

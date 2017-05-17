@@ -1,20 +1,21 @@
 GROUP_GHOST=GetCollisionLayerId("Default");
+GROUP_INDES=GROUP_GHOST
 GROUP_ENEMY_BULLET=GetCollisionLayerId("Bullet");
 GROUP_ENEMY=GetCollisionLayerId("Enemy");
 GROUP_PLAYER_BULLET=GetCollisionLayerId("PlayerBullet");
 GROUP_PLAYER=GetCollisionLayerId("Player");
 GROUP_ITEM=GetCollisionLayerId("Item");
---GROUP_ALL=16
+GROUP_ALL=-1
 GROUP_NUM_OF_GROUP=16
 
-LAYER_BG=-700
-LAYER_ENEMY=-600
-LAYER_PLAYER_BULLET=-500
-LAYER_PLAYER=-400
-LAYER_ITEM=-300
-LAYER_ENEMY_BULLET=-200
-LAYER_ENEMY_BULLET_EF=-100
-LAYER_TOP=0
+LAYER_BG=GetSortingLayerId("BG");
+LAYER_ENEMY=GetSortingLayerId("Enemy");
+LAYER_PLAYER_BULLET=GetSortingLayerId("PlayerBullet");
+LAYER_PLAYER=GetSortingLayerId("Player");
+LAYER_ITEM=GetSortingLayerId("Item");
+LAYER_ENEMY_BULLET=GetSortingLayerId("Bullet");
+LAYER_ENEMY_BULLET_EF=LAYER_ENEMY_BULLET;
+LAYER_TOP=GetSortingLayerId("Top");
 
 PI=math.pi
 PIx2=math.pi*2
@@ -40,7 +41,7 @@ end
 function PreserveObject(o)
 	o.status='normal'
 end
-do
+--[[do
 	local old = Kill
 	function Kill(o)
 		if o then
@@ -57,7 +58,7 @@ do
 			old(o)
 		end
 	end
-end
+end]]
 
 int=math.floor
 abs=math.abs
@@ -68,6 +69,7 @@ rnd=math.random
 sqrt=math.sqrt
 function sign(x) if x>0 then return 1 elseif x<0 then return -1 else return 0 end end
 ran=Rand()
+ran:Seed(((os.time()%65536)*877)%65536);
 function hypot(x,y) return sqrt(x*x+y*y) end
 
 function SetV2(obj,v,angle,rot,aim)
@@ -149,7 +151,7 @@ function EnumRes(typename)
 end
 
 screen={}
-if RES[setting.res].x>RES[setting.res].y then
+--[[if RES[setting.res].x>RES[setting.res].y then
 	screen.width=640
 	screen.height=480
 	screen.scale=RES[setting.res].y/screen.height
@@ -163,7 +165,15 @@ else
 	screen.dx=0
 	screen.dy=(RES[setting.res].y-screen.scale*screen.height)*0.5
 	lstg.world={l=-192,r=192,b=-224,t=224,boundl=-224,boundr=224,boundb=-256,boundt=256,scrl=6,scrr=390,scrb=16,scrt=464}
-end
+end]]
+
+screen.width=5
+screen.height=5
+screen.scale=RES[setting.res].y/screen.height
+screen.dx=(RES[setting.res].x-screen.scale*screen.width)*0.5
+screen.dy=0
+lstg.world={l=-5,r=5,b=-5,t=5,boundl=-7,boundr=7,boundb=-7,boundt=7,scrl=0,scrr=10,scrb=0,scrt=10}
+
 --SetBound(lstg.world.boundl,lstg.world.boundr,lstg.world.boundb,lstg.world.boundt)
 
 function WorldToScreen(x,y)
@@ -475,24 +485,24 @@ end
 function SetViewMode(mode)
 	lstg.viewmode=mode
 	if mode=='3d' then
-		--SetViewport(lstg.world.scrl*screen.scale+screen.dx,lstg.world.scrr*screen.scale+screen.dx,lstg.world.scrb*screen.scale+screen.dy,lstg.world.scrt*screen.scale+screen.dy)
+		SetViewport(lstg.world.scrl*screen.scale+screen.dx,lstg.world.scrr*screen.scale+screen.dx,lstg.world.scrb*screen.scale+screen.dy,lstg.world.scrt*screen.scale+screen.dy)
 		--[[SetPerspective(lstg.view3d.eye[1],lstg.view3d.eye[2],lstg.view3d.eye[3],
 					   lstg.view3d.at[1],lstg.view3d.at[2],lstg.view3d.at[3],
 					   lstg.view3d.up[1],lstg.view3d.up[2],lstg.view3d.up[3],
 					   lstg.view3d.fovy,(lstg.world.r-lstg.world.l)/(lstg.world.t-lstg.world.b),
 					   lstg.view3d.z[1],lstg.view3d.z[2])]]
-		--SetFog(lstg.view3d.fog[1],lstg.view3d.fog[2],lstg.view3d.fog[3])
-		SetImageScale(((((lstg.view3d.eye[1]-lstg.view3d.at[1])^2+(lstg.view3d.eye[2]-lstg.view3d.at[2])^2+(lstg.view3d.eye[3]-lstg.view3d.at[3])^2)^0.5)*2*math.tan(lstg.view3d.fovy*0.5))/(lstg.world.scrr-lstg.world.scrl))
+		SetFog(lstg.view3d.fog[1],lstg.view3d.fog[2],lstg.view3d.fog[3])
+		--SetImageScale(((((lstg.view3d.eye[1]-lstg.view3d.at[1])^2+(lstg.view3d.eye[2]-lstg.view3d.at[2])^2+(lstg.view3d.eye[3]-lstg.view3d.at[3])^2)^0.5)*2*math.tan(lstg.view3d.fovy*0.5))/(lstg.world.scrr-lstg.world.scrl))
 	elseif mode=='world' then
 		--SetViewport(lstg.world.scrl*screen.scale+screen.dx,lstg.world.scrr*screen.scale+screen.dx,lstg.world.scrb*screen.scale+screen.dy,lstg.world.scrt*screen.scale+screen.dy)
 		--SetOrtho(lstg.world.l,lstg.world.r,lstg.world.b,lstg.world.t)
 		SetFog()
-		SetImageScale((lstg.world.r-lstg.world.l)/(lstg.world.scrr-lstg.world.scrl))
+		--SetImageScale((lstg.world.r-lstg.world.l)/(lstg.world.scrr-lstg.world.scrl))
 	elseif mode=='ui' then
 		--SetOrtho(0.5,screen.width+0.5,-0.5,screen.height-0.5)
 		--SetViewport(screen.dx,screen.width*screen.scale+screen.dx,screen.dy,screen.height*screen.scale+screen.dy)
 		SetFog()
-		SetImageScale(1)
+		--SetImageScale(1)
 	else error('Invalid arguement.') end
 end
 
@@ -561,19 +571,6 @@ function UserSystemOperation()
 end
 
 Timer = 0
-
-Foo=Class(object)
-
-function Foo:frame()
-	self.x = 5 * lstg.cos(self.timer);
-	self.y = 5 * lstg.sin(self.timer);
-end
-
-function Foo:colli(other)
-	Print(other);
-end
-
-Bar=Class(object)
 
 function DoFrame(frame,render)
 	--SetTitle(setting.mod..' | FPS='..GetFPS()..' | Number of Objects='..GetnObj())
@@ -666,8 +663,6 @@ function GameInit()
 
 	item.PlayerInit();
 	New(reimu_player);
-	--local obj = lstg.New(Bar);
-	--obj.img = "graze";
 end
 
 function GameExit()
@@ -694,6 +689,28 @@ function RenderRect(...)
 end
 
 Include 'root.lua'
+
+Foo=Class(enemybase)
+
+function Foo:init()
+	enemybase.init(self, 10, false);
+end
+
+function Foo:frame()
+	self.x = 5 * lstg.cos(self.timer);
+	self.y = 5 * lstg.sin(self.timer);
+	enemybase.frame(self);
+end
+
+function Foo:colli(other)
+	enemybase.colli(self, other);
+end
+
+function enemybase:take_damage(dmg)
+	if not self.protect then
+		self.hp=self.hp-dmg;
+	end
+end
 
 for _,v in pairs(all_class) do
 	v[1]=v.init;

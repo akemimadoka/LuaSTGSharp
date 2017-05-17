@@ -123,8 +123,12 @@ public class Game : MonoBehaviour
 		var lstgObj = resultObj.AddComponent<LSTGObject>();
 		ObjectDictionary.Add(lstgObj.Id, lstgObj);
 
-		LuaDLL.lua_pushlightuserdata(l, l);
+		LuaDLL.lua_pushlightuserdata(l, LuaVM.luaState.L);
 		LuaDLL.lua_gettable(l, LuaIndexes.LUA_REGISTRYINDEX);
+		if (LuaDLL.lua_isnil(l, -1))
+		{
+			return LuaDLL.luaL_error(l, "object table is broken.");
+		}
 		LuaDLL.lua_createtable(l, 2, 0);
 		LuaDLL.lua_pushvalue(l, 1);  // t(class) ... ot t(object) class
 		LuaDLL.lua_rawseti(l, -2, 1);  // t(class) ... ot t(object)  设置class
@@ -201,6 +205,10 @@ public class Game : MonoBehaviour
 		var audioSources = GetComponents<AudioSource>();
 		MusicAudioSource = audioSources[0];
 		SoundAudioSource = audioSources[1];
+
+		GlobalImageScaleFactor = 1.5f;
+		GlobalMusicVolume = 1f;
+		GlobalSoundEffectVolume = 1f;
 
 		GameLogger = new Logger(new GameLogHandler(LogFilePath));
 		ResourceManager = new ResourceManager();

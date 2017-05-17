@@ -24,19 +24,19 @@
 // init will not use reflection to speed up the speed
 //#define USE_STATIC_BINDER  
 
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using UnityEditor;
 
 namespace SLua
 {
-	using System;
-	using System.Threading;
-	using System.Collections;
-	using System.Collections.Generic;
-	using System.Reflection;
-	#if !SLUA_STANDALONE
+#if !SLUA_STANDALONE
 	using UnityEngine;
-	using Debug = UnityEngine.Debug;
-	#endif
+
+#endif
 
 	[Flags]
 	public enum LuaSvrFlag
@@ -52,8 +52,8 @@ namespace SLua
 		#if !SLUA_STANDALONE
 		protected static LuaSvrGameObject lgo;
 		#endif
-		int errorReported = 0;
-		public bool inited = false;
+		int errorReported;
+		public bool inited;
 
 		public LuaSvr()
 		{
@@ -128,7 +128,7 @@ namespace SLua
 
 		private IEnumerator doBind(IntPtr L,Action<int> _tick,Action complete)
 		{
-			Action<int> tick = (int p) => {
+			Action<int> tick = p => {
 				if (_tick != null)
 					_tick (p);
 			};
@@ -162,12 +162,12 @@ namespace SLua
 			return new Action<IntPtr>[0];
 		}
 
-        protected void doinit(IntPtr L,LuaSvrFlag flag)
+		protected void doinit(IntPtr L,LuaSvrFlag flag)
 		{
 			#if !SLUA_STANDALONE
 			LuaTimer.reg(L);
 			#if UNITY_EDITOR
-			if (UnityEditor.EditorApplication.isPlaying)
+			if (EditorApplication.isPlaying)
 			#endif
 				LuaCoroutine.reg(L, lgo);
 			#endif
@@ -181,11 +181,11 @@ namespace SLua
 
 			#if !SLUA_STANDALONE
 			#if UNITY_EDITOR
-			if (UnityEditor.EditorApplication.isPlaying)
+			if (EditorApplication.isPlaying)
 			{
 			#endif
 				lgo.state = luaState;
-				lgo.onUpdate = this.tick;
+				lgo.onUpdate = tick;
 				lgo.init();
 			#if UNITY_EDITOR
 			}
@@ -196,7 +196,7 @@ namespace SLua
 			inited = true;
 		}
 
-        protected void checkTop(IntPtr L)
+		protected void checkTop(IntPtr L)
 		{
 			if (LuaDLL.lua_gettop(luaState.L) != errorReported)
 			{
@@ -210,7 +210,7 @@ namespace SLua
 			#if !SLUA_STANDALONE
 			if (lgo == null
 			#if UNITY_EDITOR
-				&& UnityEditor.EditorApplication.isPlaying
+				&& EditorApplication.isPlaying
 			#endif
 			)
 			{
@@ -232,7 +232,7 @@ namespace SLua
 
 
 			#if UNITY_EDITOR
-			if (!UnityEditor.EditorApplication.isPlaying)
+			if (!EditorApplication.isPlaying)
 			{
 				doBind(L);
 				doinit(L, flag);

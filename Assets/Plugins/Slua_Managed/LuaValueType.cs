@@ -20,16 +20,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+using System;
+
 namespace SLua
 {
-    using System;
-    class LuaValueType : LuaObject
-    {
+	class LuaValueType : LuaObject
+	{
 #if !UNITY_IPHONE && !LUA_5_3 && !SLUA_STANDALONE
-        static string script = @"
+		static string script = @"
 if not UnityEngine or not UnityEngine.Vector2 then
-    print('No static code gen yet, ignore `LuaValueType:reg` !!! ')
-    return
+	print('No static code gen yet, ignore `LuaValueType:reg` !!! ')
+	return
 end
 local setmetatable=setmetatable
 local getmetatable=getmetatable
@@ -201,8 +202,8 @@ do
 
 	I.__eq = function(a,b)
 		return abs(a[1]-b[1])<Epsilon
-		 	and abs(a[2]-b[2])<Epsilon
-		 	and abs(a[3]-b[3])<Epsilon
+			and abs(a[2]-b[2])<Epsilon
+			and abs(a[3]-b[3])<Epsilon
 	end
 
 	I.__unm = function(a)
@@ -306,10 +307,10 @@ do
 		end
 	end
 
-    function Vector3.Normalize(v)
-        local v=Vector3.Clone(v)
-        Vector3.Normalized(v)
-        return v
+	function Vector3.Normalize(v)
+		local v=Vector3.Clone(v)
+		Vector3.Normalized(v)
+		return v
 	end
 
 	function I:Normalize()
@@ -500,30 +501,30 @@ do
 		local maxSpeed = maxSpeed or Infinite
 		smoothTime = max(Epsilon,smoothTime)
 		local float num = 2 / smoothTime
-	    local float num2 = num * deltaTime
-	    local float num3 = 1 / (((1 + num2) + ((0.48 * num2) * num2)) + (((0.235 * num2) * num2) * num2))
-	    local vector = current - target;
-	    local vector2 = target
-	    local maxLength = maxSpeed * smoothTime
-	    vector = Vector3.ClampMagnitude(vector, maxLength)
-	    target = current - vector
-	    local vector3 = currentVelocity +  vector * deltaTime * num
-	    local newv = currentVelocity -  vector3 * num3 * num
-	    local vector4 = target + (vector + vector3) * num3
-	    if Vector3.Dot(vector2 - current, vector4 - vector2) > 0 then
-	        vector4 = vector2
-	        newv = (vector4 - vector2) / deltaTime
-	    end
-	    currentVelocity:Set(newv.x,newv.y,newv.z)
-	    return vector4,currentVelocity
+		local float num2 = num * deltaTime
+		local float num3 = 1 / (((1 + num2) + ((0.48 * num2) * num2)) + (((0.235 * num2) * num2) * num2))
+		local vector = current - target;
+		local vector2 = target
+		local maxLength = maxSpeed * smoothTime
+		vector = Vector3.ClampMagnitude(vector, maxLength)
+		target = current - vector
+		local vector3 = currentVelocity +  vector * deltaTime * num
+		local newv = currentVelocity -  vector3 * num3 * num
+		local vector4 = target + (vector + vector3) * num3
+		if Vector3.Dot(vector2 - current, vector4 - vector2) > 0 then
+			vector4 = vector2
+			newv = (vector4 - vector2) / deltaTime
+		end
+		currentVelocity:Set(newv.x,newv.y,newv.z)
+		return vector4,currentVelocity
 	end
 
 	-- code copy from reflactor of UnityEgnine
 	function Vector3.ClampMagnitude(vector,maxLength)
-	    if Vector3.SqrMagnitude(vector) > (maxLength^2) then
-	        return vector.normalized * maxLength
-	    end
-	    return Vector3.Clone(vector)
+		if Vector3.SqrMagnitude(vector) > (maxLength^2) then
+			return vector.normalized * maxLength
+		end
+		return Vector3.Clone(vector)
 	end
 
 	function Vector3.Reflect(dir,nml)
@@ -541,10 +542,10 @@ do
 	-- code copy from reflactor of UnityEgnine
 	function Vector3.Project( vector,normal )
 		local num = Vector3.Dot(normal, normal)
-	    if num < Epsilon then
-	        return Vector3.zero
-	    end
-	    return (normal * Vector3.Dot(vector, normal)) / num
+		if num < Epsilon then
+			return Vector3.zero
+		end
+		return (normal * Vector3.Dot(vector, normal)) / num
 	end
 
 	setmetatable(Vector3,Vector3)
@@ -721,7 +722,7 @@ do
 
 	function Vector2.__eq( a,b )
 		return abs(a[1]-b[1])<Epsilon
-		 	and abs(a[2]-b[2])<Epsilon
+			and abs(a[2]-b[2])<Epsilon
 	end
 
 	function Vector2.__mul( a,b )
@@ -819,9 +820,9 @@ do
 
 	function Vector4.__eq( a,b )
 		return abs(a[1]-b[1])<Epsilon
-		 	and abs(a[2]-b[2])<Epsilon
-		 	and abs(a[3]-b[3])<Epsilon
-		 	and abs(a[4]-b[4])<Epsilon
+			and abs(a[2]-b[2])<Epsilon
+			and abs(a[3]-b[3])<Epsilon
+			and abs(a[4]-b[4])<Epsilon
 	end
 
 	function Vector4.__mul( a,b )
@@ -900,34 +901,34 @@ do
 	-- reflector code
 	Quaternion.__mul = function(a,b,target)
 		if getmetatable(b).__typename=='Vector3' then
-			    local vector=Vector3.New(0,0,0)
-			    local num = a[1] * 2
-			    local num2 = a[2] * 2
-			    local num3 = a[3] * 2
-			    local num4 = a[1] * num
-			    local num5 = a[2] * num2
-			    local num6 = a[3] * num3
-			    local num7 = a[1] * num2
-			    local num8 = a[1] * num3
-			    local num9 = a[2] * num3
-			    local num10 = a.w * num
-			    local num11 = a.w * num2
-			    local num12 = a.w * num3
-			    vector[1] = (((1 - (num5 + num6)) * b[1]) + ((num7 - num12) * b[2])) + ((num8 + num11) * b[3])
-			    vector[2] = (((num7 + num12) * b[1]) + ((1 - (num4 + num6)) * b[2])) + ((num9 - num10) * b[3])
-			    vector[3] = (((num8 - num11) * b[1]) + ((num9 + num10) * b[2])) + ((1 - (num4 + num5)) * b[3])
-			    return vector
+				local vector=Vector3.New(0,0,0)
+				local num = a[1] * 2
+				local num2 = a[2] * 2
+				local num3 = a[3] * 2
+				local num4 = a[1] * num
+				local num5 = a[2] * num2
+				local num6 = a[3] * num3
+				local num7 = a[1] * num2
+				local num8 = a[1] * num3
+				local num9 = a[2] * num3
+				local num10 = a.w * num
+				local num11 = a.w * num2
+				local num12 = a.w * num3
+				vector[1] = (((1 - (num5 + num6)) * b[1]) + ((num7 - num12) * b[2])) + ((num8 + num11) * b[3])
+				vector[2] = (((num7 + num12) * b[1]) + ((1 - (num4 + num6)) * b[2])) + ((num9 - num10) * b[3])
+				vector[3] = (((num8 - num11) * b[1]) + ((num9 + num10) * b[2])) + ((1 - (num4 + num5)) * b[3])
+				return vector
 		else
 			local x,y,z,w =
 				(((a[4] * b[1]) + (a[1] * b[4])) + (a[2] * b[3])) - (a[3] * b[2]),
-			 	(((a[4] * b[2]) + (a[2] * b[4])) + (a[3] * b[1])) - (a[1] * b[3]),
-			 	(((a[4] * b[3]) + (a[3] * b[4])) + (a[1] * b[2])) - (a[2] * b[1]),
-			 	(((a[4] * b[4]) - (a[1] * b[1])) - (a[2] * b[2])) - (a[3] * b[3])
+				(((a[4] * b[2]) + (a[2] * b[4])) + (a[3] * b[1])) - (a[1] * b[3]),
+				(((a[4] * b[3]) + (a[3] * b[4])) + (a[1] * b[2])) - (a[2] * b[1]),
+				(((a[4] * b[4]) - (a[1] * b[1])) - (a[2] * b[2])) - (a[3] * b[3])
 
 			 if target then
-			 	target[1],target[2],target[3],target[4]=x,y,z,w
+				target[1],target[2],target[3],target[4]=x,y,z,w
 			 else
-			 	return Quaternion.New(x,y,z,w)
+				return Quaternion.New(x,y,z,w)
 			 end
 		end
 	end
@@ -1033,14 +1034,14 @@ do
 		local tmpQuat=Quaternion.New(0,0,0,1)
 		if Quaternion.Dot(q1, q2) < 0 then
 			tmpQuat:Set(q1[1] + t * (-q2[1] - q1[1]),
-			            q1[2] + t * (-q2[2] - q1[2]),
-			            q1[3] + t * (-q2[3] - q1[3]),
-			            q1[4] + t * (-q2[4] - q1[4]))
+						q1[2] + t * (-q2[2] - q1[2]),
+						q1[3] + t * (-q2[3] - q1[3]),
+						q1[4] + t * (-q2[4] - q1[4]))
 		else
 			tmpQuat:Set(q1[1] + t * (q2[1] - q1[1]),
-			            q1[2] + t * (q2[2] - q1[2]),
-			            q1[3] + t * (q2[3] - q1[3]),
-			            q1[4] + t * (q2[4] - q1[4]))
+						q1[2] + t * (q2[2] - q1[2]),
+						q1[3] + t * (q2[3] - q1[3]),
+						q1[4] + t * (q2[4] - q1[4]))
 		end
 		return Quaternion.Normalize(tmpQuat)
 	end
@@ -1065,9 +1066,9 @@ do
 			sinat   = sin(angle*t)
 			sinaomt = sin(angle*(1-t))
 			tmpQuat:Set( (q1[1]*sinaomt+tmpQuat[1]*sinat)*sinadiv,
-				     (q1[2]*sinaomt+tmpQuat[2]*sinat)*sinadiv,
-				     (q1[3]*sinaomt+tmpQuat[3]*sinat)*sinadiv, 
-				     (q1[4]*sinaomt+tmpQuat[4]*sinat)*sinadiv  )
+					 (q1[2]*sinaomt+tmpQuat[2]*sinat)*sinadiv,
+					 (q1[3]*sinaomt+tmpQuat[3]*sinat)*sinadiv, 
+					 (q1[4]*sinaomt+tmpQuat[4]*sinat)*sinadiv  )
 			return tmpQuat
 		else
 			return Quaternion.Lerp(q1,tmpQuat,t)
@@ -1079,12 +1080,12 @@ end
 
 ";
 #endif
-        public static void reg(IntPtr l)
-        {
+		public static void reg(IntPtr l)
+		{
 #if !UNITY_IPHONE && !LUA_5_3 && !SLUA_STANDALONE
-            // lua implemented valuetype isn't faster than raw under non-jit.
+			// lua implemented valuetype isn't faster than raw under non-jit.
 			LuaState.get(l).doString(script,"ValueTypeScript");
 #endif
-        }
-    }
+		}
+	}
 }

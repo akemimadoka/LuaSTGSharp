@@ -21,21 +21,19 @@
 // THE SOFTWARE.
 
 
+using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Object = UnityEngine.Object;
 
 namespace SLua
 {
-	using System;
-	using System.Runtime.InteropServices;
-	using System.Collections.Generic;
-	using System.Runtime.CompilerServices;
-
 	public class ObjectCache
 	{
 		static Dictionary<IntPtr, ObjectCache> multiState = new Dictionary<IntPtr, ObjectCache>();
 
 		static IntPtr oldl = IntPtr.Zero;
-		static internal ObjectCache oldoc = null;
+		static internal ObjectCache oldoc;
 
 		public static ObjectCache get(IntPtr l)
 		{
@@ -146,7 +144,7 @@ namespace SLua
 
 			public void del(int i)
 			{
-				this.Remove(i);
+				Remove(i);
 			}
 
 			public bool get(int i, out object o)
@@ -171,22 +169,22 @@ namespace SLua
 #endif
 
 		FreeList cache = new FreeList();
-        public class ObjEqualityComparer : IEqualityComparer<object>
-        {
-            public new bool Equals(object x, object y)
-            {
+		public class ObjEqualityComparer : IEqualityComparer<object>
+		{
+			public new bool Equals(object x, object y)
+			{
 
-                return ReferenceEquals(x, y);
-            }
+				return ReferenceEquals(x, y);
+			}
 
-            public int GetHashCode(object obj)
-            {
-                return RuntimeHelpers.GetHashCode(obj);
-            }
-        }
+			public int GetHashCode(object obj)
+			{
+				return RuntimeHelpers.GetHashCode(obj);
+			}
+		}
 
 		Dictionary<object, int> objMap = new Dictionary<object, int>(new ObjEqualityComparer());
-		int udCacheRef = 0;
+		int udCacheRef;
 
 
 		public ObjectCache(IntPtr l)
@@ -234,15 +232,15 @@ namespace SLua
 			}
 		}
 #if !SLUA_STANDALONE
-        internal void gc(UnityEngine.Object o)
-        {
-            int index;
-            if(objMap.TryGetValue(o, out index))
-            {
-                objMap.Remove(o);
-                cache.del(index);
-            }
-        }
+		internal void gc(Object o)
+		{
+			int index;
+			if(objMap.TryGetValue(o, out index))
+			{
+				objMap.Remove(o);
+				cache.del(index);
+			}
+		}
 #endif
 
 		internal int add(object o)

@@ -54,9 +54,9 @@
 			"action" :
 			"obj = New(Foo)
 			obj.img = 'undefined';
-			obj.group = GROUP_ENEMY_BULLET;
+			obj.group = GROUP_ENEMY;
 			obj.x = 5;
 			obj.omiga = 1;
-			Print(lstg.var.editvalue);"
+			Print(loadstring(lstg.var.editvalue)());"
 		}
 }

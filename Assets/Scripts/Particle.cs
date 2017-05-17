@@ -93,7 +93,7 @@ public class ResParticle : Resource
 		_material = material;
 	}
 
-	public void SetParticleSystem(ParticleSystem particleSystem)
+	public void SetupParticleSystem(ParticleSystem particleSystem)
 	{
 		if (!_loaded || _material == null)
 		{

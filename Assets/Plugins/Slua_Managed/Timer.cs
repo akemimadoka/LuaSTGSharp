@@ -20,11 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+using System;
+using System.Collections.Generic;
+
 namespace SLua
 {
-	using System;
-	using System.Collections.Generic;
-	
 	public class LuaTimer : LuaObject
 	{
 		class Timer
@@ -47,12 +47,12 @@ namespace SLua
 			internal Wheel(int dialSize)
 			{
 				this.dialSize = dialSize;
-				this.timeRange = dialSize * dial_scale;
-				this.head = 0;
-				this.vecDial = new LinkedList<Timer>[dial_scale];
+				timeRange = dialSize * dial_scale;
+				head = 0;
+				vecDial = new LinkedList<Timer>[dial_scale];
 				for (int i = 0; i < dial_scale; ++i)
 				{
-					this.vecDial[i] = new LinkedList<Timer>();
+					vecDial[i] = new LinkedList<Timer>();
 				}
 			}
 			internal LinkedList<Timer> nextDial()
@@ -66,7 +66,7 @@ namespace SLua
 				tm.container = container;
 			}
 		}
-		static int nextSn = 0;
+		static int nextSn;
 		static int jiffies_msec = 20;
 		static float jiffies_sec = jiffies_msec * .001f;
 		static Wheel[] wheels;
@@ -213,7 +213,7 @@ namespace SLua
 		
 		internal static int add(int delay, Action<int> handler)
 		{
-			return add(delay, 0, (int sn) =>
+			return add(delay, 0, sn =>
 			           {
 				handler(sn);
 				return false;
@@ -240,7 +240,7 @@ namespace SLua
 			}
 		}
 		
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		public static int Delete(IntPtr l)
 		{
 			try{
@@ -250,11 +250,11 @@ namespace SLua
 				return ok(l);
 			}catch(Exception e)
 			{
-				return LuaObject.error(l, e);
+				return error(l, e);
 			}
 		}
 		
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		public static int Add(IntPtr l)
 		{
 			try{
@@ -271,7 +271,7 @@ namespace SLua
 					else
 					{
 						IntPtr ml = LuaState.get(l).L;
-						ua = (int id) =>
+						ua = id =>
 						{
 							int error = pushTry(ml);
 							pushValue(ml, id);
@@ -284,7 +284,7 @@ namespace SLua
 					pushValue(l, add(delay, ua));
 					return 2;
 				}
-				else if (top == 3)
+				if (top == 3)
 				{
 					int delay, cycle;
 					checkType(l, 1, out delay);
@@ -298,7 +298,7 @@ namespace SLua
 					else
 					{
 						IntPtr ml = LuaState.get(l).L;
-						ua = (int id) =>
+						ua = id =>
 						{
 							int error = pushTry(ml);
 							pushValue(ml, id);
@@ -313,15 +313,15 @@ namespace SLua
 					pushValue(l, add(delay, cycle, ua));
 					return 2;
 				}
-				return LuaObject.error(l,"Argument error");
+				return error(l,"Argument error");
 			}catch(Exception e)
 			{
-				return LuaObject.error(l, e);
+				return error(l, e);
 			}
 		}
 		
 		
-		[MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+		[MonoPInvokeCallback(typeof(LuaCSFunction))]
 		public static int DeleteAll(IntPtr l)
 		{
 			if (mapSnTimer == null) return 0;
@@ -338,7 +338,7 @@ namespace SLua
 			}
 			catch (Exception e)
 			{
-				return LuaObject.error(l, e);
+				return error(l, e);
 			}
 		}
 		

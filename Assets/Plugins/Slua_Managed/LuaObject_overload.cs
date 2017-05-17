@@ -21,16 +21,13 @@
 // THE SOFTWARE.
 
 
+using System;
+using UnityEngine;
+using Object = UnityEngine.Object;
+
 #if !SLUA_STANDALONE
 namespace SLua
 {
-	using UnityEngine;
-	using System.Collections;
-	using System.Collections.Generic;
-	using System;
-	using System.Reflection;
-	using System.Runtime.InteropServices;
-
 	public partial class LuaObject
 	{
 
@@ -122,15 +119,15 @@ namespace SLua
 			pushObject(l, r);
 		}
 
-        public static void pushValue(IntPtr l, UnityEngine.AnimationState o)
-        {
-            if (o == null)
-                LuaDLL.lua_pushnil(l);
-            else
-                pushObject(l, o);
-        }
+		public static void pushValue(IntPtr l, AnimationState o)
+		{
+			if (o == null)
+				LuaDLL.lua_pushnil(l);
+			else
+				pushObject(l, o);
+		}
 
-        public static void pushValue(IntPtr l, UnityEngine.Object o)
+		public static void pushValue(IntPtr l, Object o)
 		{
 			if (o == null)
 				LuaDLL.lua_pushnil(l);
