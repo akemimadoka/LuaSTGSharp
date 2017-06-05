@@ -571,6 +571,7 @@ function UserSystemOperation()
 end
 
 Timer = 0
+cheat = true
 
 function DoFrame(frame,render)
 	--SetTitle(setting.mod..' | FPS='..GetFPS()..' | Number of Objects='..GetnObj())
@@ -655,7 +656,6 @@ function GameInit()
 	LoadTexture("undefinedTex", "undefined.png");
 	LoadImage("undefined", "undefinedTex", 0, 0, 128, 128)
 	SetBound(-10, 10, -10, 10);
-	LoadPS('graze','graze.psi','undefined');
 	CreateUI("test", "test.json");
 	local node = GetUINode("test", "FPSCounter");
 	node.x = 10;
@@ -663,6 +663,15 @@ function GameInit()
 
 	item.PlayerInit();
 	New(reimu_player);
+
+	--task.Wait(30);
+
+	local obj = New(Foo);
+	obj.img = 'undefined';
+	obj.group = GROUP_ENEMY;
+	obj.x = 0;
+	obj.y = 3;
+	obj.omiga = 1;
 end
 
 function GameExit()
@@ -699,6 +708,13 @@ end
 function Foo:frame()
 	self.x = 5 * lstg.cos(self.timer);
 	self.y = 5 * lstg.sin(self.timer);
+	if IsValid(lstg.player) and self.timer % 60 == 0 then
+		local _last = New(bullet, arrow_big, COLOR_RED, false, true);
+		_last.x = self.x; _last.y = self.y;
+		local a = Angle(self, lstg.player);
+		Print(a);
+		SetV(_last, 0.2, a, true);
+	end
 	enemybase.frame(self);
 end
 

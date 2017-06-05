@@ -52,11 +52,11 @@
 			"height" : 50,
 			"caption" : "Click me!",
 			"action" :
-			"obj = New(Foo)
+			"do local obj = New(Foo)
 			obj.img = 'undefined';
 			obj.group = GROUP_ENEMY;
 			obj.x = 5;
 			obj.omiga = 1;
-			Print(loadstring(lstg.var.editvalue)());"
+			Print(loadstring(lstg.var.editvalue)()); end"
 		}
 }

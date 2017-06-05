@@ -87,10 +87,14 @@ public class LSTGObject : MonoBehaviour
 			float angle;
 			Vector3 axis;
 			transform.rotation.ToAngleAxis(out angle, out axis);
+			if (axis == Vector3.back)
+			{
+				angle = -angle;
+			}
 			//Debug.Assert(axis == Vector3.back || axis == Vector3.zero);
-			return (angle - 180f) % 360f;
+			return angle % 360f;
 		}
-		set { transform.rotation = Quaternion.AngleAxis((value + 180f) % 360f, Vector3.back); }
+		set { transform.rotation = Quaternion.AngleAxis(value % 360f, Vector3.forward); }
 	}
 
 	[LObjectPropertyAliasAs("omiga")]
@@ -272,7 +276,7 @@ public class LSTGObject : MonoBehaviour
 		}
 	}
 	[LObjectPropertyAliasAs("timer")]
-	public int Timer { get; private set; }
+	public int Timer { get; set; }
 	[LObjectPropertyAliasAs("ani")]
 	public int AniTimer { get; private set; }
 
@@ -336,6 +340,16 @@ public class LSTGObject : MonoBehaviour
 				spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
 			}
 			spriteRenderer.sprite = sprite.GetSprite();
+
+			if (Rect != sprite.IsRect())
+			{
+				Rect = sprite.IsRect();
+			}
+
+			var size = sprite.GetSprite().bounds.size;
+			var pixelsPerUnit = sprite.GetSprite().pixelsPerUnit;
+
+			Ab = size / pixelsPerUnit;
 		}
 		else if (_renderResource is ResAnimation)
 		{
@@ -345,6 +359,18 @@ public class LSTGObject : MonoBehaviour
 				spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
 			}
 			spriteRenderer.sprite = ((ResAnimation) _renderResource).GetSprite(0);
+
+			var sp = spriteRenderer.sprite;
+
+			if (Rect != ((ResAnimation) _renderResource).IsRect())
+			{
+				Rect = ((ResAnimation) _renderResource).IsRect();
+			}
+
+			var size = sp.bounds.size;
+			var pixelsPerUnit = sp.pixelsPerUnit;
+
+			Ab = size / pixelsPerUnit;
 		}
 		else if (_renderResource is ResParticle)
 		{
@@ -355,6 +381,13 @@ public class LSTGObject : MonoBehaviour
 				particleSys = gameObject.AddComponent<ParticleSystem>();
 			}
 			resParticle.SetupParticleSystem(particleSys);
+
+			if (Rect != resParticle.Rect)
+			{
+				Rect = resParticle.Rect;
+			}
+
+			Ab = resParticle.Ab;
 		}
 	}
 
@@ -376,7 +409,6 @@ public class LSTGObject : MonoBehaviour
 
 	public void Awake()
 	{
-		++Game.GameInstance.ObjectCount;
 		gameObject.AddComponent<BoxCollider>().isTrigger = true;
 		//gameObject.AddComponent<BoxCollider2D>().isTrigger = true;
 		var rigidBody = gameObject.AddComponent<Rigidbody>();
@@ -388,6 +420,7 @@ public class LSTGObject : MonoBehaviour
 	// Use this for initialization
 	public void Start()
 	{
+		++Game.GameInstance.ObjectCount;
 	}
 
 	public void OnAcquireLuaTable(LuaTable objTable)
@@ -495,8 +528,8 @@ public class LSTGObject : MonoBehaviour
 
 	public void SetV(float v, float a, bool updateRot)
 	{
-		a *= Mathf.Deg2Rad;
-		Velocity = new Vector2(v * Mathf.Cos(a), v * Mathf.Sin(a));
+		var ra = a * Mathf.Deg2Rad;
+		Velocity = new Vector2(v * Mathf.Cos(ra), v * Mathf.Sin(ra));
 		if (updateRot)
 		{
 			Rotation = a;

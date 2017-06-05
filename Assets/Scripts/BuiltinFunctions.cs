@@ -891,11 +891,19 @@ public static class BuiltinFunctions
 		var particle = activedPool.GetResourceAs<ResParticle>(name, path);
 		particle.Ab = new Vector2(a, b);
 		particle.Rect = rect;
-		particle.SetMaterial(new Material(Shader.Find("Standard"))
+		var realSprite = sprite.GetSprite();
+		var newTexture = new Texture2D((int) realSprite.textureRect.width, (int) realSprite.textureRect.height);
+		var pixels = realSprite.texture.GetPixels((int) realSprite.textureRect.x,
+			(int) realSprite.textureRect.y,
+			(int) realSprite.textureRect.width,
+			(int) realSprite.textureRect.height);
+		newTexture.SetPixels(pixels);
+		newTexture.Apply();
+		particle.SetMaterial(new Material(Shader.Find("Particles/Alpha Blended Premultiply"))
 		{
-			mainTexture = sprite.GetSprite().texture
+			mainTexture = newTexture
 		});
-
+		
 		return 0;
 	}
 
@@ -1705,6 +1713,8 @@ public static class BuiltinFunctions
 	[MonoPInvokeCallback(typeof(LuaCSFunction))]
 	public static int DebugHint(IntPtr l)
 	{
+		System.Diagnostics.Debugger.Break();
+		UnityEditor.EditorApplication.isPaused = true;
 		return 0;
 	}
 

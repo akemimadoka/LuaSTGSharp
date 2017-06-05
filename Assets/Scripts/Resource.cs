@@ -46,6 +46,11 @@ public abstract class Resource : IDisposable
 	{
 		// 默认啥都不做。。。
 	}
+
+	public override string ToString()
+	{
+		return string.Format("{0}({1})", base.ToString(), _name);
+	}
 }
 
 /// <summary>
@@ -730,7 +735,7 @@ public sealed class ResourceManager
 		ThrowIfDisposed();
 		return _resourceDataProviders.Reverse<IResourceDataProvider>().Select(pack => pack.GetResourceStream(path, additionalData)).FirstOrDefault(data => data != null);
 	}
-		
+
 	public Resource FindResource(string name)
 	{
 		ThrowIfDisposed();

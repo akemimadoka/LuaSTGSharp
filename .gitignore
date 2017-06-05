@@ -4,3 +4,4 @@
 *.user
 /Log
 /Data/Thlib
+*.cache
