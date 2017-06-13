@@ -407,8 +407,9 @@ public static class BuiltinFunctions
 		if (LuaDLL.lua_gettop(l) >= 3)
 		{
 			LuaObject.checkType(l, 3, out ignore);
+			ignore = !ignore;
 		}
-
+		
 		Physics.IgnoreLayerCollision(LuaDLL.luaL_checkinteger(l, 1), LuaDLL.luaL_checkinteger(l, 2), ignore);
 		return 0;
 	}
@@ -417,7 +418,7 @@ public static class BuiltinFunctions
 	public static int ShouldCollideWith(IntPtr l)
 	{
 		LuaDLL.lua_pushboolean(l,
-			Physics.GetIgnoreLayerCollision(LuaDLL.luaL_checkinteger(l, 1), LuaDLL.luaL_checkinteger(l, 2)));
+			!Physics.GetIgnoreLayerCollision(LuaDLL.luaL_checkinteger(l, 1), LuaDLL.luaL_checkinteger(l, 2)));
 		return 1;
 	}
 
@@ -898,6 +899,7 @@ public static class BuiltinFunctions
 			(int) realSprite.textureRect.width,
 			(int) realSprite.textureRect.height);
 		newTexture.SetPixels(pixels);
+		newTexture.Resize(newTexture.width / 5, newTexture.height / 5);
 		newTexture.Apply();
 		particle.SetMaterial(new Material(Shader.Find("Particles/Alpha Blended Premultiply"))
 		{

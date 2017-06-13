@@ -588,7 +588,7 @@ function DoFrame(frame,render)
 		stage.current_stage:frame()
 		stage.current_stage.timer=stage.current_stage.timer+1
 		--ObjFrame()
-		UserSystemOperation()  --用于lua层模拟内核级操作
+		--UserSystemOperation()  --用于lua层模拟内核级操作
 		--BoundCheck()
 		--CollisionCheck(GROUP_PLAYER,GROUP_ENEMY_BULLET)
 		--CollisionCheck(GROUP_PLAYER,GROUP_ENEMY)
@@ -664,7 +664,21 @@ function GameInit()
 	item.PlayerInit();
 	New(reimu_player);
 
-	--task.Wait(30);
+	New(tasker, function()
+		local angle = 36;
+		local count = 10;
+		local step = 1;
+		while true do
+			for i=1,count*step,step do
+				local _last = New(bullet, arrow_big, COLOR_RED, false, true);
+				_last.x = cos(i * angle); _last.y = sin(i * angle);
+				SetV(_last, 0.1, Angle(lstg.player,_last), true);
+				task.Wait(5);
+			end
+			step = -step;
+			task.Wait(60);
+		end
+	end);
 
 	local obj = New(Foo);
 	obj.img = 'undefined';
@@ -712,7 +726,6 @@ function Foo:frame()
 		local _last = New(bullet, arrow_big, COLOR_RED, false, true);
 		_last.x = self.x; _last.y = self.y;
 		local a = Angle(self, lstg.player);
-		Print(a);
 		SetV(_last, 0.2, a, true);
 	end
 	enemybase.frame(self);

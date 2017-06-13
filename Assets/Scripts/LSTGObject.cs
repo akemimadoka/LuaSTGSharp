@@ -16,6 +16,8 @@ public class LSTGObject : MonoBehaviour
 {
 	public enum ObjFuncIndex
 	{
+		None = 0,	// 不会被使用
+
 		Init = 1,
 		Del,
 		Frame,

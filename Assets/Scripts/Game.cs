@@ -300,7 +300,11 @@ public class Game : MonoBehaviour
 			case Status.Running:
 				break;
 			case Status.Aborted:
-				// TODO: 完成回收操作
+				if (_gameExitFunc != null)
+				{
+					_gameExitFunc.call();
+				}
+
 				CurrentStatus = Status.Destroyed;
 				break;
 			case Status.Destroyed:
@@ -311,8 +315,6 @@ public class Game : MonoBehaviour
 		}
 
 		CurrentFPS = 1.0f / Time.deltaTime;
-
-		// TODO: 完成更新操作，包括对象的更新等
 
 		if ((bool) _frameFunc.call())
 		{
@@ -332,11 +334,6 @@ public class Game : MonoBehaviour
 
 	public void OnApplicationQuit()
 	{
-		if (_gameExitFunc != null)
-		{
-			_gameExitFunc.call();
-		}
-
 		if (GameLogger == null)
 		{
 			return;
@@ -369,11 +366,6 @@ public class Game : MonoBehaviour
 		{
 			_focusLoseFunc.call();
 		}
-	}
-
-	public void OnTriggerExit2D(Collider2D collision)
-	{
-		
 	}
 	// TODO: 
 	// 对象是否还需要排序？是否需要重用？

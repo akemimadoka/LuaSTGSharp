@@ -104,8 +104,7 @@ public class ResParticle : Resource
 		{
 			return;
 		}
-
-		// TODO: 完成粒子系统的配置
+		
 		particleSystem.Stop();
 
 		var main = particleSystem.main;
